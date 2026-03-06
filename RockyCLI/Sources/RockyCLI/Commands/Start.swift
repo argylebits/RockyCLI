@@ -18,7 +18,8 @@ struct Start: AsyncParsableCommand {
 
         let proj = try await projectService.findOrCreate(name: project)
 
-        if try await sessionService.hasRunningSession(projectId: proj.id) {
+        let autoStop = try ConfigFile.getBool("auto-stop", default: true)
+        if autoStop, try await sessionService.hasRunningSession(projectId: proj.id) {
             throw ValidationError("Timer already running for \(proj.name)")
         }
 
