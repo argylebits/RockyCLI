@@ -24,6 +24,15 @@ public struct ProjectService: Sendable {
         return try Project(row: rows[0])
     }
 
+    public func getById(_ id: Int) async throws -> Project? {
+        let rows = try await db.query(
+            "SELECT * FROM projects WHERE id = ?",
+            [.integer(id)]
+        )
+        guard let row = rows.first else { return nil }
+        return try Project(row: row)
+    }
+
     public func getByName(_ name: String) async throws -> Project? {
         let rows = try await db.query(
             "SELECT * FROM projects WHERE name = ? COLLATE NOCASE",
