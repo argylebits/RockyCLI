@@ -2,14 +2,36 @@ import Foundation
 
 enum Formatter {
     static func duration(_ seconds: TimeInterval, hoursOnly: Bool = false) -> String {
-        let totalMinutes = Int(seconds) / 60
-        let hours = totalMinutes / 60
-        let minutes = totalMinutes % 60
+        let dur = Duration.seconds(Int(seconds))
 
         if hoursOnly {
-            return "\(hours)h"
+            return dur.formatted(.units(
+                allowed: [.hours],
+                width: .narrow,
+                zeroValueUnits: .show(length: 1),
+                fractionalPart: .hide
+            ))
         }
-        return "\(hours)h \(String(format: "%02d", minutes))m"
+
+        let totalMinutes = Int(seconds) / 60
+        let style: Duration.UnitsFormatStyle
+        if totalMinutes > 0 {
+            style = Duration.UnitsFormatStyle(
+                allowedUnits: [.hours, .minutes],
+                width: .narrow,
+                zeroValueUnits: .show(length: 1),
+                fractionalPart: .hide
+            )
+        } else {
+            style = Duration.UnitsFormatStyle(
+                allowedUnits: [.hours, .seconds],
+                width: .narrow,
+                zeroValueUnits: .show(length: 1),
+                fractionalPart: .hide
+            )
+        }
+        return dur.formatted(style)
+            .replacingOccurrences(of: #" (\d)([ms])"#, with: " 0$1$2", options: .regularExpression)
     }
 
     static func time(_ date: Date) -> String {

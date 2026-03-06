@@ -221,7 +221,12 @@ enum Table {
             }
             for (i, cell) in row.cells.enumerated() {
                 if i > 0 { line += "   " }
-                line += cell.padding(toLength: widths[i], withPad: " ", startingAt: 0)
+                if i == 0 {
+                    line += cell.padding(toLength: widths[i], withPad: " ", startingAt: 0)
+                } else {
+                    let padded = String(repeating: " ", count: max(0, widths[i] - cell.count)) + cell
+                    line += padded
+                }
             }
             return line.trimmingTrailingWhitespace()
         }
