@@ -89,6 +89,10 @@ public struct ReportService: Sendable {
         try await grouped(from: from, to: to, projectId: projectId, grouping: .week)
     }
 
+    public func groupedByWeekOfMonth(from: Date, to: Date, projectId: Int? = nil) async throws -> GroupedReport {
+        try await grouped(from: from, to: to, projectId: projectId, grouping: .weekOfMonth)
+    }
+
     public func groupedByMonth(from: Date, to: Date, projectId: Int? = nil) async throws -> GroupedReport {
         try await grouped(from: from, to: to, projectId: projectId, grouping: .month)
     }
@@ -170,11 +174,25 @@ public struct ReportService: Sendable {
         case .week:
             var weekNum = 1
             while current < to {
-                let next = calendar.date(byAdding: .day, value: 7, to: current)!
-                let end = min(next, to)
-                columns.append(Column(label: "Week \(weekNum)", start: current, end: end))
-                current = next
+                guard let interval = calendar.dateInterval(of: .weekOfYear, for: current) else { break }
+                let start = max(interval.start, from)
+                let end = min(interval.end, to)
+                columns.append(Column(label: "Week \(weekNum)", start: start, end: end))
+                current = interval.end
                 weekNum += 1
+            }
+        case .weekOfMonth:
+            var seen = Set<Int>()
+            while current < to {
+                let weekNum = calendar.component(.weekOfMonth, from: current)
+                guard let interval = calendar.dateInterval(of: .weekOfMonth, for: current) else { break }
+                if !seen.contains(weekNum) {
+                    seen.insert(weekNum)
+                    let start = max(interval.start, from)
+                    let end = min(interval.end, to)
+                    columns.append(Column(label: "Week \(weekNum)", start: start, end: end))
+                }
+                current = interval.end
             }
         case .month:
             while current < to {
@@ -255,7 +273,7 @@ public struct VerboseSessionRow: Sendable {
 }
 
 private enum Grouping {
-    case day, week, month
+    case day, week, weekOfMonth, month
 }
 
 private struct Column {

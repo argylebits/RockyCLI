@@ -89,7 +89,7 @@ Period:  March 2026
 ```
 
 **Rules:**
-- Week 1 = days 1–7, Week 2 = 8–14, Week 3 = 15–21, Week 4 = 22–end
+- Weeks are determined by the system calendar's `weekOfMonth` — a month may have 4 or 5 weeks depending on what day it starts on
 - Projects with no time this month still shown (they may have been active recently)
 - Hours-only format acceptable when >= 10h (e.g. `11h` instead of `11h 00m`)
 

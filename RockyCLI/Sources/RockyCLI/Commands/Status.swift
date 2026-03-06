@@ -89,7 +89,7 @@ struct Status: AsyncParsableCommand {
                 let sessions = try await reportService.verboseSessions(from: start, to: end, projectId: projectId)
                 print(Table.renderVerbose(sessions, period: period, projectFilter: project))
             } else {
-                let report = try await reportService.groupedByWeek(from: start, to: end, projectId: projectId)
+                let report = try await reportService.groupedByWeekOfMonth(from: start, to: end, projectId: projectId)
                 print(Table.renderGrouped(report, period: period, projectFilter: project))
             }
             return
@@ -158,15 +158,10 @@ struct Status: AsyncParsableCommand {
     }
 
     private func weekRange(for date: Date, calendar: Calendar) -> (Date, Date) {
-        // Monday-based week
         var cal = calendar
         cal.firstWeekday = 2 // Monday
-        let weekday = cal.component(.weekday, from: date)
-        // Calculate days since Monday (weekday 2)
-        let daysFromMonday = (weekday + 5) % 7
-        let monday = cal.date(byAdding: .day, value: -daysFromMonday, to: cal.startOfDay(for: date))!
-        let nextMonday = cal.date(byAdding: .day, value: 7, to: monday)!
-        return (monday, nextMonday)
+        let interval = cal.dateInterval(of: .weekOfYear, for: date)!
+        return (interval.start, interval.end)
     }
 
     private func monthRange(for date: Date, calendar: Calendar) -> (Date, Date) {
