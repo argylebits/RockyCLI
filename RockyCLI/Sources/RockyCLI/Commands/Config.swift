@@ -16,7 +16,7 @@ struct Config: ParsableCommand {
         func run() throws {
             let config = try ConfigFile.load()
             guard let value = config[key] else {
-                throw CleanExit.message("Key \"\(key)\" is not set.")
+                throw ValidationError("Key \"\(key)\" is not set.")
             }
             print("\(key) = \(value)")
         }

@@ -43,7 +43,7 @@ struct Status: AsyncParsableCommand {
         var projectId: Int? = nil
         if let projectName = project {
             guard let proj = try await projectService.getByName(projectName) else {
-                throw CleanExit.message("No project found with name \"\(projectName)\".")
+                throw ValidationError("No project found with name \"\(projectName)\".")
             }
             projectId = proj.id
         }
@@ -110,12 +110,12 @@ struct Status: AsyncParsableCommand {
 
         if let fromStr = from {
             guard let fromDate = parseDate(fromStr) else {
-                throw CleanExit.message("Invalid date format: \(fromStr). Use YYYY-MM-DD.")
+                throw ValidationError("Invalid date format: \(fromStr). Use YYYY-MM-DD.")
             }
             let toDate: Date
             if let toStr = to {
                 guard let parsed = parseDate(toStr) else {
-                    throw CleanExit.message("Invalid date format: \(toStr). Use YYYY-MM-DD.")
+                    throw ValidationError("Invalid date format: \(toStr). Use YYYY-MM-DD.")
                 }
                 toDate = calendar.date(byAdding: .day, value: 1, to: parsed)!
             } else {

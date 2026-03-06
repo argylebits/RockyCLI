@@ -71,7 +71,7 @@ struct Stop: AsyncParsableCommand {
 
     private func stopProject(name: String, projectService: ProjectService, sessionService: SessionService) async throws {
         guard let proj = try await projectService.getByName(name) else {
-            throw CleanExit.message("No project found with name \"\(name)\".")
+            throw ValidationError("No project found with name \"\(name)\".")
         }
         let stopped = try await sessionService.stop(projectId: proj.id)
         print("Stopped \(proj.name) (\(Formatter.duration(stopped.duration())))")
