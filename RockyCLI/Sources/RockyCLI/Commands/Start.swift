@@ -19,7 +19,7 @@ struct Start: AsyncParsableCommand {
         let proj = try await projectService.findOrCreate(name: project)
 
         if try await sessionService.hasRunningSession(projectId: proj.id) {
-            throw CleanExit.message("Timer already running for \(proj.name)")
+            throw ValidationError("Timer already running for \(proj.name)")
         }
 
         try await sessionService.start(projectId: proj.id)
