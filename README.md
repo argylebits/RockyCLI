@@ -1,14 +1,179 @@
 # Rocky
 
-A multi-package Swift project.
+A fast, local CLI time tracker. Track time across projects, view reports by day/week/month/year, and drill down into individual sessions. All data stays on your machine in a local SQLite database.
 
-## Packages
+## Installation
 
-- `RockyCore/` — shared library
-- `Rocky/` — SwiftUI application
-- `RockyCLI/` — command-line tool
+### Homebrew (macOS and Linux)
+
+```bash
+brew tap argylebits/tap
+brew install rocky
+```
+
+### From source
+
+Requires Swift 6.2+.
+
+```bash
+git clone https://github.com/argylebits/Rocky.git
+cd Rocky
+swift build -c release --package-path RockyCLI
+cp RockyCLI/.build/release/RockyCLI /usr/local/bin/rocky
+```
+
+## Getting started
+
+```bash
+# Start tracking time on a project (creates it if it doesn't exist)
+rocky start acme-corp
+
+# Check what's running
+rocky status
+
+# Stop the timer
+rocky stop
+```
+
+That's it. No accounts, no setup, no config files required.
+
+## Commands
+
+### `rocky start <project>`
+
+Start a timer for a project. Creates the project automatically if it doesn't exist.
+
+```bash
+rocky start acme-corp
+# Started acme-corp
+
+rocky start side-project
+# Started side-project
+# Currently running: acme-corp, side-project
+```
+
+Multiple timers can run simultaneously.
+
+### `rocky stop [project] [--all]`
+
+Stop a running timer.
+
+```bash
+rocky stop                  # auto-stops if only one running, prompts if multiple
+rocky stop acme-corp        # stop a specific project
+rocky stop --all            # stop everything
+```
+
+When multiple timers are running and no project is specified, Rocky shows an interactive prompt:
+
+```
+Multiple timers running:
+
+    Project           Duration
+────────────────────────────────
+  1. acme-corp        2h 30m
+  2. side-project     0h 45m
+────────────────────────────────
+
+Stop which? (1/2/all):
+```
+
+### `rocky status [flags]`
+
+Show time tracking reports.
+
+```bash
+rocky status                # what's running right now
+rocky status --today        # today's totals
+rocky status --week         # this week, broken down by day
+rocky status --month        # this month, broken down by week
+rocky status --year         # this year, broken down by month
+```
+
+#### Custom date ranges
+
+```bash
+rocky status --from 2026-01-01
+rocky status --from 2026-01-01 --to 2026-02-01
+```
+
+#### Filter by project
+
+```bash
+rocky status --week --project acme-corp
+```
+
+#### Verbose mode — individual sessions
+
+Add `-v` or `--verbose` to see individual session start/stop times:
+
+```bash
+rocky status --week --verbose
+```
+
+```
+Period:  Mon 02 Mar — Fri 06 Mar 2026
+
+  Date    Project           Start    Stop      Duration
+────────────────────────────────────────────────────────
+  Mon     studio-client     09:00    11:00     2h 00m
+  Mon     acme-corp         14:00    19:30     5h 30m
+  Tue     side-project      10:00    12:00     2h 00m
+  Wed     acme-corp         14:00    17:30     3h 30m
+  Fri     acme-corp         09:00    11:00     2h 00m
+▶ Fri     side-project      11:30    running   0h 45m
+────────────────────────────────────────────────────────
+                                               19h 45m
+```
+
+### `rocky projects`
+
+List all projects.
+
+```bash
+rocky projects
+```
+
+```
+  Project           Created
+──────────────────────────────────
+  acme-corp         Jan 2026
+  side-project      Feb 2026
+  studio-client     Feb 2026
+```
+
+### `rocky config`
+
+Manage preferences. Config is stored at `~/.rocky/config.json`.
+
+```bash
+rocky config list               # show all settings
+rocky config get auto-stop      # get a specific setting
+rocky config set auto-stop true # set a value
+```
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `auto-stop` | `true` | Prevent starting duplicate timers on the same project |
+
+## How it works
+
+- Data is stored locally in `~/.rocky/rocky.db` (SQLite)
+- Project names are case-insensitive for matching, stored as first entered
+- All times displayed in your local timezone
+- Durations shown as `Xh Ym` (e.g., `2h 30m`, `0h 45m`)
+
+## Updating
+
+```bash
+brew upgrade rocky
+```
 
 ## Requirements
 
-- Swift 6.2+
-- macOS 15+
+- macOS 15+ or Linux (x86_64 / arm64)
+- No runtime dependencies when installed via Homebrew
+
+## License
+
+MIT
