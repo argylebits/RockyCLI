@@ -93,4 +93,37 @@ enum Formatter {
         f.timeZone = .current
         return f.string(from: date)
     }
+
+    // MARK: - Dashboard Formatting
+
+    static func shortDate(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "dd MMM"
+        f.timeZone = .current
+        return f.string(from: date)
+    }
+
+    static func monthAbbreviation(_ date: Date) -> String {
+        let calendar = Calendar.current
+        let month = calendar.component(.month, from: date)
+        return calendar.shortMonthSymbols[month - 1]
+    }
+
+    static func dayOfMonth(_ date: Date) -> Int {
+        Calendar.current.component(.day, from: date)
+    }
+
+    static func weekdayName(_ weekday: Int) -> String {
+        // Calendar weekday: 1=Sun, 2=Mon, ..., 7=Sat
+        let symbols = Calendar.current.weekdaySymbols
+        guard weekday >= 1, weekday <= symbols.count else { return "Unknown" }
+        return symbols[weekday - 1]
+    }
+
+    static var mondayFirstVeryShortWeekdaySymbols: [String] {
+        // Calendar.veryShortStandaloneWeekdaySymbols is Sun-first
+        // Rotate to Mon-first per DECISIONS.md
+        let symbols = Calendar.current.veryShortStandaloneWeekdaySymbols
+        return Array(symbols[1...]) + [symbols[0]]
+    }
 }
