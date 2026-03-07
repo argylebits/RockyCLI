@@ -92,3 +92,60 @@ jobs:
             artifacts/*.tar.gz
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew formula
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          SHA_MACOS_ARM64=$(shasum -a 256 artifacts/rocky-macos-arm64.tar.gz | awk '{print $1}')
+          SHA_MACOS_X86=$(shasum -a 256 artifacts/rocky-macos-x86_64.tar.gz | awk '{print $1}')
+          SHA_LINUX_ARM64=$(shasum -a 256 artifacts/rocky-linux-arm64.tar.gz | awk '{print $1}')
+          SHA_LINUX_X86=$(shasum -a 256 artifacts/rocky-linux-x86_64.tar.gz | awk '{print $1}')
+
+          FORMULA=$(cat <<RUBY
+          class Rocky < Formula
+            desc "CLI time tracking tool"
+            homepage "https://github.com/argylebits/Rocky"
+            version "${VERSION}"
+            license "MIT"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/argylebits/Rocky/releases/download/v#{version}/rocky-macos-arm64.tar.gz"
+                sha256 "${SHA_MACOS_ARM64}"
+              elsif Hardware::CPU.intel?
+                url "https://github.com/argylebits/Rocky/releases/download/v#{version}/rocky-macos-x86_64.tar.gz"
+                sha256 "${SHA_MACOS_X86}"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.arm?
+                url "https://github.com/argylebits/Rocky/releases/download/v#{version}/rocky-linux-arm64.tar.gz"
+                sha256 "${SHA_LINUX_ARM64}"
+              elsif Hardware::CPU.intel?
+                url "https://github.com/argylebits/Rocky/releases/download/v#{version}/rocky-linux-x86_64.tar.gz"
+                sha256 "${SHA_LINUX_X86}"
+              end
+            end
+
+            def install
+              bin.install "rocky"
+            end
+
+            test do
+              assert_match "rocky", shell_output("#{bin}/rocky --help")
+            end
+          end
+          RUBY
+          )
+
+          # Update formula in homebrew-tap repo via GitHub API
+          EXISTING=$(gh api repos/argylebits/homebrew-tap/contents/Formula/rocky.rb --jq '.sha')
+
+          echo "$FORMULA" | gh api -X PUT repos/argylebits/homebrew-tap/contents/Formula/rocky.rb \
+            -f message="Update rocky formula to ${VERSION}" \
+            -f content="$(echo "$FORMULA" | base64)" \
+            -f sha="$EXISTING"
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
