@@ -13,10 +13,10 @@ struct Projects: AsyncParsableCommand {
         let projects = try await ctx.projectService.list()
 
         if projects.isEmpty {
-            print("No projects found.")
+            output("No projects found.")
             return
         }
 
-        print(Table.renderProjects(projects))
+        output(Table.renderProjects(projects))
     }
 }

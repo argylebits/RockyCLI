@@ -31,18 +31,19 @@ struct Stop: AsyncParsableCommand {
         let running = try await ctx.sessionService.getRunningWithProjects()
 
         if running.isEmpty {
-            print("No timers currently running.")
+            output("No timers currently running.")
             return
         }
 
         if running.count == 1 {
             let (_, proj) = running[0]
             let stopped = try await ctx.sessionService.stop(projectId: proj.id)
-            print("Stopped \(proj.name) (\(Formatter.duration(stopped.duration())))")
+            output("Stopped \(proj.name) (\(Formatter.duration(stopped.duration())))")
             return
         }
 
         // Multiple running — interactive prompt
+        print()
         print(Table.renderRunningTimers(running))
         print()
 
@@ -58,7 +59,7 @@ struct Stop: AsyncParsableCommand {
             if let num = Int(input), num >= 1, num <= running.count {
                 let (_, proj) = running[num - 1]
                 let stopped = try await ctx.sessionService.stop(projectId: proj.id)
-                print("Stopped \(proj.name) (\(Formatter.duration(stopped.duration())))")
+                output("Stopped \(proj.name) (\(Formatter.duration(stopped.duration())))")
                 return
             }
 
@@ -71,13 +72,13 @@ struct Stop: AsyncParsableCommand {
             throw ValidationError("No project found with name \"\(name)\".")
         }
         let stopped = try await ctx.sessionService.stop(projectId: proj.id)
-        print("Stopped \(proj.name) (\(Formatter.duration(stopped.duration())))")
+        output("Stopped \(proj.name) (\(Formatter.duration(stopped.duration())))")
     }
 
     private func stopAll(ctx: AppContext) async throws {
         let stopped = try await ctx.sessionService.stopAll()
         if stopped.isEmpty {
-            print("No timers currently running.")
+            output("No timers currently running.")
             return
         }
 
@@ -89,9 +90,10 @@ struct Stop: AsyncParsableCommand {
         }
 
         let maxName = entries.map(\.name.count).max() ?? 0
-        for entry in entries {
+        let lines = entries.map { entry in
             let padded = entry.name.padding(toLength: maxName, withPad: " ", startingAt: 0)
-            print("Stopped \(padded)  (\(entry.duration))")
+            return "Stopped \(padded)  (\(entry.duration))"
         }
+        output(lines.joined(separator: "\n"))
     }
 }

@@ -21,12 +21,13 @@ struct Start: AsyncParsableCommand {
         }
 
         try await ctx.sessionService.start(projectId: proj.id)
-        print("Started \(proj.name)")
 
+        var message = "Started \(proj.name)"
         let running = try await ctx.sessionService.getRunningWithProjects()
         if running.count > 1 {
             let names = running.map(\.1.name).joined(separator: ", ")
-            print("Currently running: \(names)")
+            message += "\nCurrently running: \(names)"
         }
+        output(message)
     }
 }
