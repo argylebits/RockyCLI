@@ -184,7 +184,7 @@ Period:  Mon 02 Mar — Fri 06 Mar 2026
 - Column widths: pad all columns to consistent width based on content
 - Divider line: `─` (U+2500) repeated to match table width
 - Header row uses same column widths as data rows
-- `▶` (U+25B6) for active timer indicator, `  ` (two spaces) otherwise
+- `▶` (U+25B6) for active timer indicator, ` ` (one space) otherwise
 - Duration format: `Xh Ym` — always show both hours and minutes except in year view
 - Zero minutes: `2h 00m` not `2h`
 - Times: 24h format, `HH:MM`
