@@ -4,7 +4,7 @@ import RockyCore
 enum Table {
     static let divider: Character = "\u{2500}"
     static let activeIndicator = "\u{25B6}"
-    static let inactiveIndicator = "  "
+    static let inactiveIndicator = " "
 
     // MARK: - Status (no flags)
 
