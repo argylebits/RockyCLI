@@ -1,5 +1,4 @@
 import Foundation
-import SQLiteNIO
 
 public struct Project: Codable, Sendable {
     public let id: Int

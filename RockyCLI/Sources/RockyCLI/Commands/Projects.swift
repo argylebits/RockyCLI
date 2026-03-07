@@ -7,11 +7,10 @@ struct Projects: AsyncParsableCommand {
     )
 
     func run() async throws {
-        let db = try await Database.open()
-        defer { Task { try? await db.close() } }
+        let ctx = try await AppContext.build()
+        defer { Task { try? await ctx.close() } }
 
-        let projectService = ProjectService(db: db)
-        let projects = try await projectService.list()
+        let projects = try await ctx.projectService.list()
 
         if projects.isEmpty {
             print("No projects found.")

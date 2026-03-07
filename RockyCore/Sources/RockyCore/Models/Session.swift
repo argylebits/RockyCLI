@@ -1,5 +1,4 @@
 import Foundation
-import SQLiteNIO
 
 public struct Session: Codable, Sendable {
     public let id: Int
@@ -26,14 +25,5 @@ public struct Session: Codable, Sendable {
     public func duration(at now: Date = Date()) -> TimeInterval {
         let end = endTime ?? now
         return end.timeIntervalSince(startTime)
-    }
-
-    public func toSQLiteBinds() -> [SQLiteData] {
-        var binds: [SQLiteData] = [
-            .integer(projectId),
-            startTime.sqliteBind
-        ]
-        binds.append(endTime?.sqliteBind ?? .null)
-        return binds
     }
 }

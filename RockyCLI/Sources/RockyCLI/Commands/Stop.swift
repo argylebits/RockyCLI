@@ -14,24 +14,21 @@ struct Stop: AsyncParsableCommand {
     var all: Bool = false
 
     func run() async throws {
-        let db = try await Database.open()
-        defer { Task { try? await db.close() } }
-
-        let projectService = ProjectService(db: db)
-        let sessionService = SessionService(db: db)
+        let ctx = try await AppContext.build()
+        defer { Task { try? await ctx.close() } }
 
         if all {
-            try await stopAll(projectService: projectService, sessionService: sessionService)
+            try await stopAll(ctx: ctx)
             return
         }
 
         if let projectName = project {
-            try await stopProject(name: projectName, projectService: projectService, sessionService: sessionService)
+            try await stopProject(name: projectName, ctx: ctx)
             return
         }
 
         // No args — check running timers
-        let running = try await sessionService.getRunningWithProjects()
+        let running = try await ctx.sessionService.getRunningWithProjects()
 
         if running.isEmpty {
             print("No timers currently running.")
@@ -40,7 +37,7 @@ struct Stop: AsyncParsableCommand {
 
         if running.count == 1 {
             let (_, proj) = running[0]
-            let stopped = try await sessionService.stop(projectId: proj.id)
+            let stopped = try await ctx.sessionService.stop(projectId: proj.id)
             print("Stopped \(proj.name) (\(Formatter.duration(stopped.duration())))")
             return
         }
@@ -54,13 +51,13 @@ struct Stop: AsyncParsableCommand {
             guard let input = readLine()?.trimmingCharacters(in: .whitespaces) else { continue }
 
             if input == "all" {
-                try await stopAll(projectService: projectService, sessionService: sessionService)
+                try await stopAll(ctx: ctx)
                 return
             }
 
             if let num = Int(input), num >= 1, num <= running.count {
                 let (_, proj) = running[num - 1]
-                let stopped = try await sessionService.stop(projectId: proj.id)
+                let stopped = try await ctx.sessionService.stop(projectId: proj.id)
                 print("Stopped \(proj.name) (\(Formatter.duration(stopped.duration())))")
                 return
             }
@@ -69,16 +66,16 @@ struct Stop: AsyncParsableCommand {
         }
     }
 
-    private func stopProject(name: String, projectService: ProjectService, sessionService: SessionService) async throws {
-        guard let proj = try await projectService.getByName(name) else {
+    private func stopProject(name: String, ctx: AppContext) async throws {
+        guard let proj = try await ctx.projectService.getByName(name) else {
             throw ValidationError("No project found with name \"\(name)\".")
         }
-        let stopped = try await sessionService.stop(projectId: proj.id)
+        let stopped = try await ctx.sessionService.stop(projectId: proj.id)
         print("Stopped \(proj.name) (\(Formatter.duration(stopped.duration())))")
     }
 
-    private func stopAll(projectService: ProjectService, sessionService: SessionService) async throws {
-        let stopped = try await sessionService.stopAll()
+    private func stopAll(ctx: AppContext) async throws {
+        let stopped = try await ctx.sessionService.stopAll()
         if stopped.isEmpty {
             print("No timers currently running.")
             return
@@ -86,7 +83,7 @@ struct Stop: AsyncParsableCommand {
 
         var entries: [(name: String, duration: String)] = []
         for session in stopped {
-            if let proj = try await projectService.getById(session.projectId) {
+            if let proj = try await ctx.projectService.getById(session.projectId) {
                 entries.append((proj.name, Formatter.duration(session.duration())))
             }
         }

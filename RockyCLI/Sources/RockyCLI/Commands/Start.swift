@@ -10,23 +10,20 @@ struct Start: AsyncParsableCommand {
     var project: String
 
     func run() async throws {
-        let db = try await Database.open()
-        defer { Task { try? await db.close() } }
+        let ctx = try await AppContext.build()
+        defer { Task { try? await ctx.close() } }
 
-        let projectService = ProjectService(db: db)
-        let sessionService = SessionService(db: db)
-
-        let proj = try await projectService.findOrCreate(name: project)
+        let proj = try await ctx.projectService.findOrCreate(name: project)
 
         let autoStop = try ConfigFile.getBool("auto-stop", default: true)
-        if autoStop, try await sessionService.hasRunningSession(projectId: proj.id) {
+        if autoStop, try await ctx.sessionService.hasRunningSession(projectId: proj.id) {
             throw ValidationError("Timer already running for \(proj.name)")
         }
 
-        try await sessionService.start(projectId: proj.id)
+        try await ctx.sessionService.start(projectId: proj.id)
         print("Started \(proj.name)")
 
-        let running = try await sessionService.getRunningWithProjects()
+        let running = try await ctx.sessionService.getRunningWithProjects()
         if running.count > 1 {
             let names = running.map(\.1.name).joined(separator: ", ")
             print("Currently running: \(names)")

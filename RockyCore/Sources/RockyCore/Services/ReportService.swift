@@ -1,50 +1,43 @@
 import Foundation
-import SQLiteNIO
 
 public struct ReportService: Sendable {
-    private let db: Database
+    private let sessionRepository: any SessionRepository
+    private let projectRepository: any ProjectRepository
 
-    public init(db: Database) {
-        self.db = db
+    public init(sessionRepository: any SessionRepository, projectRepository: any ProjectRepository) {
+        self.sessionRepository = sessionRepository
+        self.projectRepository = projectRepository
     }
 
     // MARK: - Status (no flags)
 
     public func allProjectsWithStatus() async throws -> [ProjectStatus] {
-        let rows = try await db.query("""
-            SELECT p.*,
-                   s.id AS s_id, s.project_id AS s_project_id, s.start_time AS s_start_time, s.end_time AS s_end_time,
-                   (SELECT MAX(s2.end_time) FROM sessions s2 WHERE s2.project_id = p.id) AS last_active
-            FROM projects p
-            LEFT JOIN sessions s ON s.project_id = p.id AND s.end_time IS NULL
-            ORDER BY
-                CASE WHEN s.id IS NOT NULL THEN 0 ELSE 1 END,
-                s.start_time ASC,
-                last_active DESC,
-                p.created_at DESC
-            """)
+        let projects = try await projectRepository.list()
+        let runningSessions = try await sessionRepository.getRunningWithProjects()
 
-        var seen = Set<Int>()
-        var results: [ProjectStatus] = []
-        for row in rows {
-            let project = try row.decode(Project.self)
-            if seen.contains(project.id) { continue }
-            seen.insert(project.id)
+        let runningByProjectId = Dictionary(
+            runningSessions.map { ($0.0.projectId, $0.0) },
+            uniquingKeysWith: { first, _ in first }
+        )
 
-            var runningSession: Session? = nil
-            if row.column("s_id")?.integer != nil {
-                runningSession = try row.decode(Session.self, prefix: "s_")
+        var running: [ProjectStatus] = []
+        var idle: [ProjectStatus] = []
+
+        for project in projects {
+            if let session = runningByProjectId[project.id] {
+                running.append(ProjectStatus(project: project, runningSession: session))
+            } else {
+                idle.append(ProjectStatus(project: project, runningSession: nil))
             }
-            results.append(ProjectStatus(project: project, runningSession: runningSession))
         }
-        return results
+
+        return running + idle
     }
 
     // MARK: - Time range reports
 
     public func totals(from: Date, to: Date, projectId: Int? = nil) async throws -> ProjectTotals {
-        let sessionService = SessionService(db: db)
-        let sessions = try await sessionService.getSessions(from: from, to: to, projectId: projectId)
+        let sessions = try await sessionRepository.getSessions(from: from, to: to, projectId: projectId)
         let now = Date()
 
         var projectDurations: [String: TimeInterval] = [:]
@@ -92,8 +85,7 @@ public struct ReportService: Sendable {
     }
 
     private func grouped(from: Date, to: Date, projectId: Int? = nil, grouping: Grouping) async throws -> GroupedReport {
-        let sessionService = SessionService(db: db)
-        let sessions = try await sessionService.getSessions(from: from, to: to, projectId: projectId)
+        let sessions = try await sessionRepository.getSessions(from: from, to: to, projectId: projectId)
         let now = Date()
         let calendar = Calendar.current
 
@@ -139,8 +131,7 @@ public struct ReportService: Sendable {
     }
 
     public func verboseSessions(from: Date, to: Date, projectId: Int? = nil) async throws -> [VerboseSessionRow] {
-        let sessionService = SessionService(db: db)
-        let sessions = try await sessionService.getSessions(from: from, to: to, projectId: projectId)
+        let sessions = try await sessionRepository.getSessions(from: from, to: to, projectId: projectId)
 
         return sessions.map { session, project in
             VerboseSessionRow(
