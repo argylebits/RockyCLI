@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import RockyCLI
+@testable import App
 @testable import RockyCore
 
 @Suite("Table Alignment")

@@ -14,49 +14,60 @@ Rocky is a CLI time tracking tool built in Swift. Read the `RockyDocs/` director
 
 ## Repo structure
 
+Single Swift package with multiple targets:
+
 ```
-Rocky/
+RockyCLI/
+├── Package.swift
 ├── CLAUDE.md               ← you are here
-├── RockyCore/              ← shared logic Swift package
-├── RockyCLI/               ← CLI binary Swift package
-├── Rocky/                  ← native app stub (do not touch)
-└── RockyDocs/             ← design documentation (read only)
+├── RockyDocs/              ← design documentation (read only)
+├── Sources/
+│   ├── RockyCore/          ← library target (business logic, database, models, services)
+│   ├── App/                ← executable target (CLI commands, output formatting)
+│   └── VersionGen/         ← build tool (generates Version.swift from git tag)
+├── Tests/
+│   ├── RockyCoreTests/
+│   └── AppTests/
+└── Plugins/
+    └── VersionPlugin/
 ```
 
-Each package has its own `CLAUDE.md` with package-specific rules.
+## Target rules
+
+### RockyCore (library)
+
+- **No CLI imports** — do not import ArgumentParser or any CLI-specific package
+- **No UI imports** — do not import any UI framework
+- **No print statements** — RockyCore never writes to stdout
+- **Raw SQL only** — use sqlite-nio directly, no ORM, no query builders
+- **Async/await throughout** — all database calls must be async
+- **Errors must throw** — never silently swallow errors
+
+### App (executable)
+
+- **No business logic** — App only calls RockyCore and formats results
+- **No direct database access** — never import sqlite-nio or touch the database
+- **Output must match `RockyDocs/OUTPUT.md` exactly** — column alignment, divider characters, duration format
+- **Use `▶` (U+25B6) for active timers** — two spaces `  ` for inactive rows
+- **Use `─` (U+2500) for divider lines** — not `-` (hyphen)
+- **Duration format is `Xh Ym`** — e.g. `2h 30m`, `0h 45m`, `1h 00m`
+- **24h time format** — `HH:MM`, local timezone
+- **Never exit with code 0 on error** — use `exit(1)` or throw
 
 ## What to work on
 
-- `RockyCore` and `RockyCLI` are the active packages
-- `Rocky` is a stub — do not add any implementation to it
-- All new features go through `RockyCore` first, then surfaced in `RockyCLI`
+- All new features go through `RockyCore` first, then surfaced in `App`
+- Database location: `~/.rocky/rocky.db` — create `~/.rocky/` if it does not exist
 
 ## GitHub workflow
 
 Follow this workflow for every piece of work:
 
-1. **Create an issue first** — before writing any code, create a GitHub issue describing what you're about to implement. Reference the relevant doc file (e.g. "Implements `rocky start` per `RockyDocs/COMMANDS.md`").
-2. **Work in a branch** — create a branch named after the issue, e.g. `feature/1-rocky-start` or `feature/2-database-setup`.
-3. **Keep PRs small and focused** — one feature or component per PR. Do not bundle unrelated changes.
-4. **Open a PR referencing the issue** — PR description should reference the issue number (e.g. `Closes #1`) and summarize what was implemented.
-5. **Never push directly to main** — all changes go through a PR.
-
-### Suggested issue breakdown
-
-Create issues in this order before starting implementation:
-
-- `[Core] Database setup and migrations` — Database.swift, Migrations.swift, schema
-- `[Core] Project model and service` — Project.swift, ProjectService.swift
-- `[Core] Session model and service` — Session.swift, SessionService.swift
-- `[Core] Report service` — ReportService.swift, time grouping logic
-- `[CLI] rocky start` — Start.swift
-- `[CLI] rocky stop` — Stop.swift, interactive prompt
-- `[CLI] rocky status (no flags)` — Status.swift base
-- `[CLI] rocky status time range flags` — --today, --week, --month, --year, --from/--to
-- `[CLI] rocky status --verbose` — session drill-down
-- `[CLI] Output formatting` — Table.swift, Formatter.swift
-- `[CLI] rocky config` — Config.swift
-- `[CLI] rocky projects` — Projects.swift
+1. **Create an issue first** — before writing any code, create a GitHub issue describing what you're about to implement
+2. **Work in a branch** — create a branch named after the issue, e.g. `feature/1-rocky-start`
+3. **Keep PRs small and focused** — one feature or component per PR
+4. **Open a PR referencing the issue** — PR description should reference the issue number (e.g. `Closes #1`)
+5. **Never push directly to main** — all changes go through a PR
 
 ## When in doubt
 

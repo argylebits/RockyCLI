@@ -8,20 +8,19 @@ on:
 
 jobs:
   macos:
+    name: macOS (Xcode)
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build RockyCore
-        run: swift build --package-path RockyCore
+      - name: Build
+        run: swift build
 
-      - name: Test RockyCore
-        run: swift test --package-path RockyCore
-
-      - name: Build RockyCLI
-        run: swift build --package-path RockyCLI
+      - name: Test
+        run: swift test
 
   linux:
+    name: Linux (Ubuntu)
     runs-on: ubuntu-latest
     container:
       image: swift:6.2
@@ -31,11 +30,8 @@ jobs:
       - name: Install SQLite
         run: apt-get update && apt-get install -y libsqlite3-dev
 
-      - name: Build RockyCore
-        run: swift build --package-path RockyCore
+      - name: Build
+        run: swift build
 
-      - name: Test RockyCore
-        run: swift test --package-path RockyCore
-
-      - name: Build RockyCLI
-        run: swift build --package-path RockyCLI
+      - name: Test
+        run: swift test

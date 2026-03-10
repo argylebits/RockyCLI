@@ -23,13 +23,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build release binary
-        run: swift build -c release --package-path RockyCLI --arch ${{ matrix.arch }}
+        run: swift build -c release --arch ${{ matrix.arch }}
 
       - name: Package binary
         run: |
-          BIN_PATH=$(swift build -c release --package-path RockyCLI --arch ${{ matrix.arch }} --show-bin-path)
+          BIN_PATH=$(swift build -c release --arch ${{ matrix.arch }} --show-bin-path)
           mkdir -p staging
-          cp "$BIN_PATH/RockyCLI" staging/rocky
+          cp "$BIN_PATH/App" staging/rocky
           chmod +x staging/rocky
           tar czf rocky-macos-${{ matrix.arch }}.tar.gz -C staging rocky
 
@@ -57,13 +57,13 @@ jobs:
         run: apt-get update && apt-get install -y libsqlite3-dev
 
       - name: Build release binary
-        run: swift build -c release --package-path RockyCLI
+        run: swift build -c release
 
       - name: Package binary
         run: |
-          BIN_PATH=$(swift build -c release --package-path RockyCLI --show-bin-path)
+          BIN_PATH=$(swift build -c release --show-bin-path)
           mkdir -p staging
-          cp "$BIN_PATH/RockyCLI" staging/rocky
+          cp "$BIN_PATH/App" staging/rocky
           chmod +x staging/rocky
           tar czf rocky-linux-${{ matrix.arch }}.tar.gz -C staging rocky
 

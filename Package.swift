@@ -7,12 +7,18 @@ let package = Package(
         .macOS(.v15),
     ],
     dependencies: [
-        .package(path: "../RockyCore"),
+        .package(url: "https://github.com/vapor/sqlite-nio.git", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.5.0"),
     ],
     targets: [
+        .target(
+            name: "RockyCore",
+            dependencies: [
+                .product(name: "SQLiteNIO", package: "sqlite-nio"),
+            ]
+        ),
         .executableTarget(
-            name: "RockyCLI",
+            name: "App",
             dependencies: [
                 "RockyCore",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
@@ -22,8 +28,12 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "RockyCLITests",
-            dependencies: ["RockyCLI"]
+            name: "RockyCoreTests",
+            dependencies: ["RockyCore"]
+        ),
+        .testTarget(
+            name: "AppTests",
+            dependencies: ["App"]
         ),
         .executableTarget(
             name: "VersionGen"

@@ -18,8 +18,8 @@ Requires Swift 6.2+.
 ```bash
 git clone https://github.com/argylebits/Rocky.git
 cd Rocky
-swift build -c release --package-path RockyCLI
-cp RockyCLI/.build/release/RockyCLI /usr/local/bin/rocky
+swift build -c release
+cp .build/release/App /usr/local/bin/rocky
 ```
 
 ## Getting started
