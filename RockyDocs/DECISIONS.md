@@ -36,9 +36,9 @@ The developer has prior experience with postgres-nio (same Vapor family). Raw SQ
 
 Always `Xh Ym` (e.g. `2h 30m`, `0h 45m`). Exception: year view uses hours-only (`30h`). Never show seconds.
 
-## 24h time format
+## Time format
 
-All times displayed in 24h format (`HH:MM`). All stored as UTC, displayed in local timezone.
+Display output follows the system locale (12h or 24h depending on user preference). All times stored as UTC, displayed in local timezone. CLI input for `--start`/`--stop` flags uses 24h format (`YYYY-MM-DD HH:MM`) for unambiguous parsing.
 
 ## `running` in stop column
 
@@ -63,6 +63,18 @@ Use `─` (U+2500 BOX DRAWINGS LIGHT HORIZONTAL) for divider lines, not `-` (hyp
 ## ▶ indicator
 
 Use `▶` (U+25B6 BLACK RIGHT-POINTING TRIANGLE) for active timer rows. Two spaces `  ` for inactive rows to maintain alignment.
+
+## All commands must support non-interactive use
+
+Every command must be fully operable via flags alone, with no interactive prompts. Interactive mode (numbered lists, prompts) is a convenience layer for humans. Non-interactive mode is the contract — it never prompts, and fails with an error if insufficient information is provided via flags. This ensures all commands are scriptable and usable by automation tools.
+
+## Session IDs shown in verbose output
+
+Verbose mode (`--verbose`) includes the database session ID in an `ID` column. This gives users a stable handle to reference specific sessions in commands like `rocky edit --session <id>`. The ID is always shown in verbose mode — no extra flag needed. Verbose is already "digging into details" mode, so the extra column is natural.
+
+## Date and time formatting uses system locale
+
+All date and time display output uses `Date.FormatStyle` and defers to the system locale. This means dates and times will render differently depending on the user's locale settings (e.g. `Mar 10` vs `10 Mar`, `5:05 PM` vs `17:05`). This is intentional — the CLI respects the user's preferences. OUTPUT.md examples are illustrative, not pixel-perfect specs.
 
 ## Color (deferred)
 

@@ -94,6 +94,30 @@ public struct SQLiteSessionRepository: SessionRepository, Sendable {
         )
     }
 
+    public func getById(_ id: Int) async throws -> Session? {
+        let rows = try await db.query(
+            "SELECT * FROM sessions WHERE id = ?",
+            [.integer(id)]
+        )
+        guard let row = rows.first else { return nil }
+        return try row.decode(Session.self)
+    }
+
+    public func update(id: Int, startTime: Date, endTime: Date?) async throws -> Session {
+        var binds: [SQLiteData] = [startTime.sqliteBind]
+        binds.append(endTime?.sqliteBind ?? .null)
+        binds.append(.integer(id))
+        try await db.execute(
+            "UPDATE sessions SET start_time = ?, end_time = ? WHERE id = ?",
+            binds
+        )
+        let rows = try await db.query(
+            "SELECT * FROM sessions WHERE id = ?",
+            [.integer(id)]
+        )
+        return try rows[0].decode(Session.self)
+    }
+
     public func getSessions(from: Date, to: Date, projectId: Int? = nil) async throws -> [(Session, Project)] {
         var sql = """
             SELECT s.*, p.id AS p_id, p.parent_id AS p_parent_id, p.name AS p_name, p.created_at AS p_created_at

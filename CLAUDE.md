@@ -51,7 +51,7 @@ RockyCLI/
 - **Use `▶` (U+25B6) for active timers** — two spaces `  ` for inactive rows
 - **Use `─` (U+2500) for divider lines** — not `-` (hyphen)
 - **Duration format is `Xh Ym`** — e.g. `2h 30m`, `0h 45m`, `1h 00m`
-- **24h time format** — `HH:MM`, local timezone
+- **Time format follows system locale** — 12h or 24h per user preference, local timezone
 - **Never exit with code 0 on error** — use `exit(1)` or throw
 
 ## What to work on

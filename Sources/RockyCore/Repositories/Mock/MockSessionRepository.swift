@@ -68,6 +68,19 @@ public final class MockSessionRepository: SessionRepository, @unchecked Sendable
         sessions.append(session)
     }
 
+    public func getById(_ id: Int) async throws -> Session? {
+        sessions.first { $0.id == id }
+    }
+
+    public func update(id: Int, startTime: Date, endTime: Date?) async throws -> Session {
+        guard let index = sessions.firstIndex(where: { $0.id == id }) else {
+            throw RockyCoreError.sessionNotFound(id)
+        }
+        let updated = Session(id: id, projectId: sessions[index].projectId, startTime: startTime, endTime: endTime)
+        sessions[index] = updated
+        return updated
+    }
+
     public func getSessions(from: Date, to: Date, projectId: Int? = nil) async throws -> [(Session, Project)] {
         var results: [(Session, Project)] = []
         for session in sessions {

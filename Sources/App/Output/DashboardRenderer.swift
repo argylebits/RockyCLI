@@ -221,7 +221,7 @@ enum DashboardRenderer {
             return [outerWrap("No timers running.")]
         }
 
-        let list = timers.map { "\($0.projectName) (\(Formatter.duration($0.duration)))" }
+        let list = timers.map { "\($0.projectName) (\(DurationFormat.formatted($0.duration)))" }
             .joined(separator: ", ")
 
         return [outerWrap("\u{25B6} Running: \(list)")]
@@ -234,7 +234,7 @@ enum DashboardRenderer {
         let weekStr: String
         if weekDiff != 0 {
             let arrow = weekDiff > 0 ? "\u{2191}" : "\u{2193}"
-            weekStr = "  \(arrow) \(Formatter.duration(abs(weekDiff))) from last week"
+            weekStr = "  \(arrow) \(DurationFormat.formatted(abs(weekDiff))) from last week"
         } else {
             weekStr = ""
         }
@@ -243,15 +243,15 @@ enum DashboardRenderer {
         let monthStr: String
         if monthDiff != 0 {
             let arrow = monthDiff > 0 ? "\u{2191}" : "\u{2193}"
-            monthStr = "  \(arrow) \(Formatter.duration(abs(monthDiff))) from last month"
+            monthStr = "  \(arrow) \(DurationFormat.formatted(abs(monthDiff))) from last month"
         } else {
             monthStr = ""
         }
 
         return [
-            outerWrap("This Week   " + leftPad(Formatter.duration(summary.thisWeek), 8) + weekStr),
-            outerWrap("This Month  " + leftPad(Formatter.duration(summary.thisMonth), 8) + monthStr),
-            outerWrap("This Year   " + leftPad(Formatter.duration(summary.thisYear, hoursOnly: true), 8)),
+            outerWrap("This Week   " + leftPad(DurationFormat.formatted(summary.thisWeek), 8) + weekStr),
+            outerWrap("This Month  " + leftPad(DurationFormat.formatted(summary.thisMonth), 8) + monthStr),
+            outerWrap("This Year   " + leftPad(DurationFormat.formatted(summary.thisYear, hoursOnly: true), 8)),
         ]
     }
 
@@ -263,7 +263,7 @@ enum DashboardRenderer {
         let allDurations = heatmap.weeks.flatMap(\.days).filter { !$0.isFuture }.map(\.duration)
         let maxDuration = allDurations.max() ?? 0
 
-        let dayLabels = Formatter.mondayFirstVeryShortWeekdaySymbols
+        let dayLabels = Calendar.current.mondayFirstVeryShortWeekdaySymbols
 
         // Month labels
         var monthRow = pad(4)
@@ -271,7 +271,7 @@ enum DashboardRenderer {
         for week in heatmap.weeks {
             let month = Calendar.current.component(.month, from: week.weekStartDate)
             if month != lastMonth {
-                let name = Formatter.monthAbbreviation(week.weekStartDate)
+                let name = Calendar.current.monthAbbreviation(for:week.weekStartDate)
                 monthRow += name + pad(max(0, 3 - name.count))
                 lastMonth = month
             } else {
@@ -286,7 +286,7 @@ enum DashboardRenderer {
         // Week-start date headers
         var dateRow = pad(4)
         for week in heatmap.weeks {
-            let day = Formatter.dayOfMonth(week.weekStartDate)
+            let day = Calendar.current.component(.day, from:week.weekStartDate)
             dateRow += leftPad(String(day), 2) + " "
         }
 
@@ -339,8 +339,8 @@ enum DashboardRenderer {
             }
         }
 
-        let startLabel = Formatter.shortDate(sparkline.values.first!.weekStartDate)
-        let endLabel = Formatter.shortDate(sparkline.values.last!.weekStartDate)
+        let startLabel = sparkline.values.first!.weekStartDate.formatted(DateTimeFormat.shortDate)
+        let endLabel = sparkline.values.last!.weekStartDate.formatted(DateTimeFormat.shortDate)
         let labelGap = max(1, sparkline.values.count - startLabel.count - endLabel.count)
         let labelRow = startLabel + pad(labelGap) + endLabel
 
@@ -375,7 +375,7 @@ enum DashboardRenderer {
             let bar = String(repeating: intensityHeavy, count: filledCount)
                 + String(repeating: intensityLight, count: emptyCount)
 
-            let dur = leftPad(Formatter.duration(entry.duration), 7)
+            let dur = leftPad(DurationFormat.formatted(entry.duration), 7)
             let pct = leftPad(String(Int(entry.percentage.rounded())) + "%", 4)
 
             lines.append(name + " " + bar + " " + dur + " " + pct)
@@ -447,14 +447,14 @@ enum DashboardRenderer {
 
         lines.append(
             rightPad("Avg session", labelWidth)
-            + leftPad(Formatter.duration(stats.averageSessionDuration), 10)
+            + leftPad(DurationFormat.formatted(stats.averageSessionDuration), 10)
         )
 
         if let longest = stats.longestSession {
-            let dateStr = Formatter.dayOfWeek(longest.date) + " " + Formatter.shortDate(longest.date)
+            let dateStr = longest.date.formatted(DateTimeFormat.dateWithDay)
             lines.append(
                 rightPad("Longest session", labelWidth)
-                + leftPad(Formatter.duration(longest.duration), 10)
+                + leftPad(DurationFormat.formatted(longest.duration), 10)
                 + "  (\(longest.projectName), \(dateStr))"
             )
         }
@@ -462,7 +462,7 @@ enum DashboardRenderer {
         if let weekday = stats.mostActiveWeekday {
             lines.append(
                 rightPad("Most active day", labelWidth)
-                + leftPad(Formatter.weekdayName(weekday), 10)
+                + leftPad(Calendar.current.weekdayName(weekday), 10)
             )
         }
 

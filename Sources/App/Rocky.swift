@@ -6,6 +6,6 @@ struct Rocky: AsyncParsableCommand {
         commandName: "rocky",
         abstract: "A CLI time tracking tool.",
         version: rockyVersion,
-        subcommands: [Start.self, Stop.self, Status.self, Dashboard.self, Config.self, Projects.self]
+        subcommands: [Start.self, Stop.self, Status.self, Edit.self, Dashboard.self, Config.self, Projects.self]
     )
 }

@@ -60,17 +60,17 @@ struct Status: AsyncParsableCommand {
             let (start, _) = dayRange(for: now, calendar: calendar)
             if verbose {
                 let sessions = try await ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
-                output(Table.renderVerbose(sessions, period: Formatter.periodToday(), projectFilter: project))
+                output(Table.renderVerbose(sessions, period: Date().formatted(DateTimeFormat.fullDate), projectFilter: project))
             } else {
                 let totals = try await ctx.reportService.totals(from: start, to: endOfToday, projectId: projectId)
-                output(Table.renderTodayTotals(totals, period: Formatter.periodToday()))
+                output(Table.renderTodayTotals(totals, period: Date().formatted(DateTimeFormat.fullDate)))
             }
             return
         }
 
         if week {
             let (start, _) = weekRange(for: now, calendar: calendar)
-            let period = Formatter.periodRange(from: start, to: endOfToday)
+            let period = DateTimeFormat.periodRange(from: start, to: endOfToday)
             if verbose {
                 let sessions = try await ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
                 output(Table.renderVerbose(sessions, period: period, projectFilter: project))
@@ -83,7 +83,7 @@ struct Status: AsyncParsableCommand {
 
         if month {
             let (start, _) = monthRange(for: now, calendar: calendar)
-            let period = Formatter.periodMonth(date: now)
+            let period = now.formatted(DateTimeFormat.monthYear)
             if verbose {
                 let sessions = try await ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
                 output(Table.renderVerbose(sessions, period: period, projectFilter: project))
@@ -96,7 +96,7 @@ struct Status: AsyncParsableCommand {
 
         if year {
             let (start, _) = yearRange(for: now, calendar: calendar)
-            let period = Formatter.periodYear(date: now)
+            let period = now.formatted(DateTimeFormat.year)
             if verbose {
                 let sessions = try await ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
                 output(Table.renderVerbose(sessions, period: period, projectFilter: project))
@@ -123,7 +123,7 @@ struct Status: AsyncParsableCommand {
             }
 
             let days = calendar.dateComponents([.day], from: fromDate, to: toDate).day ?? 0
-            let period = Formatter.periodRange(from: fromDate, to: toDate)
+            let period = DateTimeFormat.periodRange(from: fromDate, to: toDate)
 
             if verbose {
                 let sessions = try await ctx.reportService.verboseSessions(from: fromDate, to: toDate, projectId: projectId)
@@ -144,10 +144,7 @@ struct Status: AsyncParsableCommand {
     // MARK: - Date helpers
 
     private func parseDate(_ string: String) -> Date? {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        f.timeZone = .current
-        return f.date(from: string)
+        try? DateTimeFormat.parseDate(string)
     }
 
     private func dayRange(for date: Date, calendar: Calendar) -> (Date, Date) {

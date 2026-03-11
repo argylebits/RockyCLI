@@ -20,7 +20,7 @@ enum Table {
             let indicator = status.isRunning ? activeIndicator : inactiveIndicator
             let duration: String
             if let session = status.runningSession {
-                duration = Formatter.duration(session.duration())
+                duration = DurationFormat.formatted(session.duration())
             } else {
                 duration = "-"
             }
@@ -40,10 +40,10 @@ enum Table {
 
         for entry in totals.entries {
             let indicator = entry.isRunning ? activeIndicator : inactiveIndicator
-            rows.append(Row(indicator: indicator, cells: [entry.projectName, Formatter.duration(entry.duration)]))
+            rows.append(Row(indicator: indicator, cells: [entry.projectName, DurationFormat.formatted(entry.duration)]))
         }
 
-        let footer = Row(indicator: inactiveIndicator, cells: ["Total", Formatter.duration(totals.total)])
+        let footer = Row(indicator: inactiveIndicator, cells: ["Total", DurationFormat.formatted(totals.total)])
         output += renderTable(headers: headers, rows: rows, footerRows: [footer])
         return output
     }
@@ -70,9 +70,9 @@ enum Table {
             var cells: [String] = []
             for i in 0..<report.columns.count {
                 let dur = row.columnDurations[i] ?? 0
-                cells.append(dur > 0 ? Formatter.duration(dur, hoursOnly: hoursOnly) : "-")
+                cells.append(dur > 0 ? DurationFormat.formatted(dur, hoursOnly: hoursOnly) : "-")
             }
-            cells.append(Formatter.duration(row.total, hoursOnly: hoursOnly))
+            cells.append(DurationFormat.formatted(row.total, hoursOnly: hoursOnly))
 
             output += renderTable(headers: headers, rows: [Row(indicator: inactiveIndicator, cells: cells)], showIndicatorColumn: false)
         } else {
@@ -84,18 +84,18 @@ enum Table {
                 var cells = [row.projectName]
                 for i in 0..<report.columns.count {
                     let dur = row.columnDurations[i] ?? 0
-                    cells.append(dur > 0 ? Formatter.duration(dur, hoursOnly: hoursOnly) : "-")
+                    cells.append(dur > 0 ? DurationFormat.formatted(dur, hoursOnly: hoursOnly) : "-")
                 }
-                cells.append(Formatter.duration(row.total, hoursOnly: hoursOnly))
+                cells.append(DurationFormat.formatted(row.total, hoursOnly: hoursOnly))
                 rows.append(Row(indicator: indicator, cells: cells))
             }
 
             var totalCells = ["Total"]
             for i in 0..<report.columns.count {
                 let dur = report.columnTotal(i)
-                totalCells.append(dur > 0 ? Formatter.duration(dur, hoursOnly: hoursOnly) : "-")
+                totalCells.append(dur > 0 ? DurationFormat.formatted(dur, hoursOnly: hoursOnly) : "-")
             }
-            totalCells.append(Formatter.duration(report.grandTotal, hoursOnly: hoursOnly))
+            totalCells.append(DurationFormat.formatted(report.grandTotal, hoursOnly: hoursOnly))
 
             output += renderTable(headers: headers, rows: rows, footerRows: [Row(indicator: inactiveIndicator, cells: totalCells)])
         }
@@ -120,36 +120,38 @@ enum Table {
         let now = Date()
 
         if projectFilter != nil {
-            let headers = ["Date", "Start", "Stop", "Duration"]
+            let headers = ["ID", "Date", "Start", "Stop", "Duration"]
             var rows: [Row] = []
 
             for row in sessions {
                 let indicator = row.session.isRunning ? activeIndicator : inactiveIndicator
-                let date = Formatter.dayOfWeek(row.session.startTime)
-                let start = Formatter.time(row.session.startTime)
-                let stop = row.session.isRunning ? "running" : Formatter.time(row.session.endTime!)
-                let dur = Formatter.duration(row.session.duration(at: now))
-                rows.append(Row(indicator: indicator, cells: [date, start, stop, dur]))
+                let id = "\(row.session.id)"
+                let date = row.session.startTime.formatted(DateTimeFormat.dayOfWeek)
+                let start = row.session.startTime.formatted(DateTimeFormat.time)
+                let stop = row.session.isRunning ? "running" : row.session.endTime!.formatted(DateTimeFormat.time)
+                let dur = DurationFormat.formatted(row.session.duration(at: now))
+                rows.append(Row(indicator: indicator, cells: [id, date, start, stop, dur]))
             }
 
             let total = sessions.reduce(0.0) { $0 + $1.session.duration(at: now) }
-            let footer = Row(indicator: inactiveIndicator, cells: ["", "", "", Formatter.duration(total)])
+            let footer = Row(indicator: inactiveIndicator, cells: ["", "", "", "", DurationFormat.formatted(total)])
             output += renderTable(headers: headers, rows: rows, footerRows: [footer])
         } else {
-            let headers = ["Date", "Project", "Start", "Stop", "Duration"]
+            let headers = ["ID", "Date", "Project", "Start", "Stop", "Duration"]
             var rows: [Row] = []
 
             for row in sessions {
                 let indicator = row.session.isRunning ? activeIndicator : inactiveIndicator
-                let date = Formatter.dayOfWeek(row.session.startTime)
-                let start = Formatter.time(row.session.startTime)
-                let stop = row.session.isRunning ? "running" : Formatter.time(row.session.endTime!)
-                let dur = Formatter.duration(row.session.duration(at: now))
-                rows.append(Row(indicator: indicator, cells: [date, row.projectName, start, stop, dur]))
+                let id = "\(row.session.id)"
+                let date = row.session.startTime.formatted(DateTimeFormat.dayOfWeek)
+                let start = row.session.startTime.formatted(DateTimeFormat.time)
+                let stop = row.session.isRunning ? "running" : row.session.endTime!.formatted(DateTimeFormat.time)
+                let dur = DurationFormat.formatted(row.session.duration(at: now))
+                rows.append(Row(indicator: indicator, cells: [id, date, row.projectName, start, stop, dur]))
             }
 
             let total = sessions.reduce(0.0) { $0 + $1.session.duration(at: now) }
-            let footer = Row(indicator: inactiveIndicator, cells: ["", "", "", "", Formatter.duration(total)])
+            let footer = Row(indicator: inactiveIndicator, cells: ["", "", "", "", "", DurationFormat.formatted(total)])
             output += renderTable(headers: headers, rows: rows, footerRows: [footer])
         }
 
@@ -161,7 +163,7 @@ enum Table {
     static func renderProjects(_ projects: [Project]) -> String {
         let headers = ["Project", "Created"]
         let rows: [Row] = projects.map { project in
-            Row(indicator: inactiveIndicator, cells: [project.name, Formatter.projectCreatedDate(project.createdAt)])
+            Row(indicator: inactiveIndicator, cells: [project.name, project.createdAt.formatted(DateTimeFormat.shortMonthYear)])
         }
         return renderTable(headers: headers, rows: rows)
     }
@@ -176,7 +178,7 @@ enum Table {
         var rows: [Row] = []
 
         for (i, (session, project)) in sessions.enumerated() {
-            let dur = Formatter.duration(session.duration(at: now))
+            let dur = DurationFormat.formatted(session.duration(at: now))
             rows.append(Row(indicator: inactiveIndicator, cells: ["\(i + 1). \(project.name)", dur]))
         }
 

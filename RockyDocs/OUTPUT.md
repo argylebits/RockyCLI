@@ -122,19 +122,19 @@ Shows individual sessions instead of daily totals.
 ```
 Period:  Mon 02 Mar — Fri 06 Mar 2026
 
-  Date    Project           Start    Stop      Duration
-────────────────────────────────────────────────────────
-  Mon     studio-client     09:00    11:00     2h 00m
-  Mon     old-agency        11:30    12:30     1h 00m
-  Mon     acme-corp         14:00    19:30     5h 30m
-  Tue     side-project      10:00    12:00     2h 00m
-  Wed     studio-client     09:30    12:30     3h 00m
-  Wed     acme-corp         14:00    17:30     3h 30m
-  Thu     studio-client     10:00    13:00     3h 00m
-  Fri     acme-corp         09:00    11:00     2h 00m
-▶ Fri     side-project      11:30    running   0h 45m
-────────────────────────────────────────────────────────
-                                               19h 45m
+   ID   Date    Project           Start    Stop      Duration
+──────────────────────────────────────────────────────────────
+   12   Mon     studio-client     09:00    11:00     2h 00m
+   13   Mon     old-agency        11:30    12:30     1h 00m
+   14   Mon     acme-corp         14:00    19:30     5h 30m
+   15   Tue     side-project      10:00    12:00     2h 00m
+   16   Wed     studio-client     09:30    12:30     3h 00m
+   17   Wed     acme-corp         14:00    17:30     3h 30m
+   18   Thu     studio-client     10:00    13:00     3h 00m
+   19   Fri     acme-corp         09:00    11:00     2h 00m
+▶  20   Fri     side-project      11:30    running   0h 45m
+──────────────────────────────────────────────────────────────
+                                                     19h 45m
 ```
 
 **Rules:**
@@ -142,6 +142,7 @@ Period:  Mon 02 Mar — Fri 06 Mar 2026
 - `running` shown in Stop column for active sessions
 - Sessions sorted by date then start time
 - Total at bottom right-aligned under Duration column
+- `ID` column shows the database session ID for use with `rocky edit --session <id>`
 
 ---
 
@@ -153,13 +154,13 @@ Single project drill-down. Project name shown in header.
 Project: acme-corp
 Period:  Mon 02 Mar — Fri 06 Mar 2026
 
-  Date    Start    Stop     Duration
-────────────────────────────────────
-  Mon     14:00    19:30    5h 30m
-  Wed     14:00    17:30    3h 30m
-  Fri     09:00    11:00    2h 00m
-────────────────────────────────────
-                            11h 00m
+   ID   Date    Start    Stop     Duration
+──────────────────────────────────────────
+   14   Mon     14:00    19:30    5h 30m
+   17   Wed     14:00    17:30    3h 30m
+   19   Fri     09:00    11:00    2h 00m
+──────────────────────────────────────────
+                                  11h 00m
 ```
 
 ---
@@ -187,7 +188,7 @@ Period:  Mon 02 Mar — Fri 06 Mar 2026
 - `▶` (U+25B6) for active timer indicator, ` ` (one space) otherwise
 - Duration format: `Xh Ym` — always show both hours and minutes except in year view
 - Zero minutes: `2h 00m` not `2h`
-- Times: 24h format, `HH:MM`
+- Times: formatted per system locale (12h or 24h depending on user preference)
 - Dates in period header: `Mon 02 Mar — Fri 06 Mar 2026`
 - `running` (lowercase) in Stop column for active sessions
 - Total rows use same column alignment as data rows
