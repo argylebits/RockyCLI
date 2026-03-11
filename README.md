@@ -134,14 +134,14 @@ Show an analytics dashboard with trends and insights.
 rocky dashboard
 ```
 
-Displays a full-screen dashboard including:
+Displays a full-width dashboard including:
 - Running timers
-- Time summaries (this week, last week, this month, last month, this year)
-- Activity heatmap (12 weeks, Mon-Sun grid)
-- Weekly sparkline trend
+- Time summaries with deltas (this week, this month, this year)
+- Activity heatmap (31 weeks, Mon–Sun grid)
+- Weekly trend sparkline (31 weeks with month labels)
 - Project distribution for the current week
 - Peak working hours
-- Streaks and stats (current/longest streak, average/longest session, most active day)
+- Streaks & stats (streak, sessions, daily avg, total hours, top project, and more)
 
 ### `rocky edit [project] [flags]`
 

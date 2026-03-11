@@ -129,13 +129,14 @@ rocky dashboard
 - No flags — displays a full-width dashboard with multiple analytics widgets
 - Widgets include:
   - Running timers (if any)
-  - Time summaries: this week, last week, this month, last month, this year (with week/month deltas)
-  - Activity heatmap: 12-week grid (Mon-Sun rows, week columns) with intensity levels `· ░ ▒ ▓ █`
-  - Weekly sparkline: 12-week trend using `▁▂▃▄▅▆▇█` characters
+  - Time summaries: this week, this month, this year (with week/month deltas showing change from previous period)
+  - Activity heatmap: 31-week grid (Mon-Sun rows, week columns) with intensity levels `· ░ ▒ ▓ █`
+  - Weekly trend: 31-week sparkline using `▁▂▃▄▅▆▇█` characters with month labels
   - Project distribution: bar chart for current week with percentage breakdown
-  - Peak hours: intensity chart showing busiest hours of the day
-  - Streaks & stats: current/longest streak, average/longest session, most active weekday
-- Dashboard uses double-line border `╔═╗║╚═╝` for outer frame and rounded single-line `╭─╮│╰─╯` for widget borders
+  - Peak hours: intensity chart showing busiest hours of the day (24h format)
+  - Streaks & stats: two-column layout with current/longest streak, sessions this week, daily avg, avg/longest session, total hours, most active day, best day this week, top project
+- All widgets render full-width with uniform padding inside rounded single-line borders `╭─╮│╰─╯`
+- Dashboard uses double-line border `╔═╗║╚═╝` for outer frame
 - All data computed from session history — no additional database tables required
 - Week starts on Monday (per DECISIONS.md)
 

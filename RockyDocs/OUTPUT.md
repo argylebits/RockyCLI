@@ -180,6 +180,90 @@ Period:  Mon 02 Mar — Fri 06 Mar 2026
 
 ---
 
+## rocky edit (interactive)
+
+Shows recent sessions for the project, prompts for selection and field to edit.
+
+```
+Sessions for rocky:
+
+   ID   Date   Start      Stop   Duration
+──────────────────────────────────────────
+   41   Mon    23:20     10:14    10h 54m
+▶  42   Tue    17:05   running     0h 05m
+──────────────────────────────────────────
+
+Edit which? 41
+
+  Mon 09 Mar    23:20 — 10:14    10h 54m
+
+  1. Start    (23:20)
+  2. Stop     (10:14)
+  3. Duration (10h 54m)
+
+Edit which field? 3
+New value (seconds): 7800
+
+Updated: Mon 09 Mar  23:20 — 01:30  (2h 10m)
+```
+
+**Rules:**
+- `▶` on rows where the timer is still running
+- `running` shown in Stop column for active sessions
+- Sessions sorted by date then start time
+- Field menu shows current values in parentheses
+- On success, prints updated session with new times and duration
+
+## rocky edit (non-interactive)
+
+```
+Updated: Mon 09 Mar  23:00 — 01:30  (2h 30m)
+```
+
+**Rules:**
+- Single confirmation line showing updated session details
+- On error, prints descriptive error and exits with code 1
+
+---
+
+## rocky dashboard
+
+Displays a full-width analytics dashboard inside a double-line outer frame (`╔═╗║╚═╝`). Each widget is wrapped in a rounded single-line box (`╭─╮│╰─╯`) with uniform padding.
+
+Layout constants: outer padding = 2, inner width = 70, total width = 74, widget box inner = 68, content width = 64.
+
+### Widgets (in order)
+
+**Running** — Lists active timers with `▶` prefix and elapsed duration. Shows "No timers running." if none.
+
+**Time Summary** — Three rows: This Week, This Month, This Year. Durations right-aligned. Week and month rows show delta arrows (`↑`/`↓`) with duration change from previous period, column-aligned.
+
+```
+This Week      2h 30m  ↑  1h 15m from last week
+This Month    12h 00m  ↓  3h 00m from last month
+This Year     48h
+```
+
+**Activity Heatmap** — 31-week grid, 7 rows (Mon–Sun), month labels across top. Intensity characters: `·` none, `░` light, `▒` moderate, `▓` busy, `█` heavy. Day labels use single-character abbreviations. Columns separated by 1 space, no trailing space on last column.
+
+**Weekly Trend** — 31-week sparkline using `▁▂▃▄▅▆▇█` characters. Each week's bar width is proportional to fill the full content width. Month labels below.
+
+**Projects This Week** — Bar chart with project names, filled/empty bar segments, percentage, and duration. Bars scaled to 100% (not to largest project). Project names capped at half the available flex width.
+
+**Peak Hours** — Two-column intensity chart showing activity level per hour (0–23) in 24h format. Uses same intensity characters as heatmap.
+
+**Streaks & Stats** — Two-column layout, 5 rows each:
+
+| Left column | Right column |
+|-------------|-------------|
+| Current streak | Daily avg (week) |
+| Longest streak | Avg session |
+| Sessions (week) | Total hours |
+| Longest session | Best day (week) |
+| Most active day | Top project |
+
+---
+
 ## General formatting rules
 
 - Column widths: pad all columns to consistent width based on content
