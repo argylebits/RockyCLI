@@ -38,7 +38,7 @@ struct Stop: AsyncParsableCommand {
         if running.count == 1 {
             let (_, proj) = running[0]
             let stopped = try await ctx.sessionService.stop(projectId: proj.id)
-            output("Stopped \(proj.name) (\(Formatter.duration(stopped.duration())))")
+            output("Stopped \(proj.name) (\(DurationFormat.formatted(stopped.duration())))")
             return
         }
 
@@ -49,7 +49,10 @@ struct Stop: AsyncParsableCommand {
 
         while true {
             print("Stop which? (\(running.indices.map { "\($0 + 1)" }.joined(separator: "/"))/all): ", terminator: "")
-            guard let input = readLine()?.trimmingCharacters(in: .whitespaces) else { continue }
+            guard let line = readLine() else {
+                throw ValidationError("Input cancelled.")
+            }
+            let input = line.trimmingCharacters(in: .whitespaces)
 
             if input == "all" {
                 try await stopAll(ctx: ctx)
@@ -59,7 +62,7 @@ struct Stop: AsyncParsableCommand {
             if let num = Int(input), num >= 1, num <= running.count {
                 let (_, proj) = running[num - 1]
                 let stopped = try await ctx.sessionService.stop(projectId: proj.id)
-                output("Stopped \(proj.name) (\(Formatter.duration(stopped.duration())))")
+                output("Stopped \(proj.name) (\(DurationFormat.formatted(stopped.duration())))")
                 return
             }
 
@@ -72,7 +75,7 @@ struct Stop: AsyncParsableCommand {
             throw ValidationError("No project found with name \"\(name)\".")
         }
         let stopped = try await ctx.sessionService.stop(projectId: proj.id)
-        output("Stopped \(proj.name) (\(Formatter.duration(stopped.duration())))")
+        output("Stopped \(proj.name) (\(DurationFormat.formatted(stopped.duration())))")
     }
 
     private func stopAll(ctx: AppContext) async throws {
@@ -85,7 +88,7 @@ struct Stop: AsyncParsableCommand {
         var entries: [(name: String, duration: String)] = []
         for session in stopped {
             if let proj = try await ctx.projectService.getById(session.projectId) {
-                entries.append((proj.name, Formatter.duration(session.duration())))
+                entries.append((proj.name, DurationFormat.formatted(session.duration())))
             }
         }
 

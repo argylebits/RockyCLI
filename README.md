@@ -114,16 +114,16 @@ rocky status --week --verbose
 ```
 Period:  Mon 02 Mar — Fri 06 Mar 2026
 
-  Date    Project           Start    Stop      Duration
-────────────────────────────────────────────────────────
-  Mon     studio-client     09:00    11:00     2h 00m
-  Mon     acme-corp         14:00    19:30     5h 30m
-  Tue     side-project      10:00    12:00     2h 00m
-  Wed     acme-corp         14:00    17:30     3h 30m
-  Fri     acme-corp         09:00    11:00     2h 00m
-▶ Fri     side-project      11:30    running   0h 45m
-────────────────────────────────────────────────────────
-                                               19h 45m
+   ID   Date    Project           Start    Stop      Duration
+──────────────────────────────────────────────────────────────
+   12   Mon     studio-client     09:00    11:00     2h 00m
+   13   Mon     acme-corp         14:00    19:30     5h 30m
+   15   Tue     side-project      10:00    12:00     2h 00m
+   17   Wed     acme-corp         14:00    17:30     3h 30m
+   19   Fri     acme-corp         09:00    11:00     2h 00m
+▶  20   Fri     side-project      11:30    running   0h 45m
+──────────────────────────────────────────────────────────────
+                                                     19h 45m
 ```
 
 ### `rocky dashboard`
@@ -142,6 +142,30 @@ Displays a full-screen dashboard including:
 - Project distribution for the current week
 - Peak working hours
 - Streaks and stats (current/longest streak, average/longest session, most active day)
+
+### `rocky edit [project] [flags]`
+
+Edit the start, stop, or duration of a session.
+
+```bash
+# Interactive — shows recent sessions, prompts for what to edit
+rocky edit acme-corp
+
+# Non-interactive — edit by session ID (shown in --verbose output)
+rocky edit --session 41 --start "2026-03-09 23:00" --stop "2026-03-10 01:30"
+rocky edit --session 41 --start "2026-03-09 23:00"
+rocky edit --session 41 --stop "2026-03-10 01:30"
+rocky edit --session 41 --duration 7800
+rocky edit --session 41 --start "2026-03-09 23:00" --duration 7800
+rocky edit --session 41 --stop "2026-03-10 01:30" --duration 7800
+```
+
+| Flag | Description |
+|------|-------------|
+| `--session <id>` | Session ID (shown in `--verbose` output) |
+| `--start <datetime>` | New start time (`YYYY-MM-DD HH:MM`) |
+| `--stop <datetime>` | New stop time (`YYYY-MM-DD HH:MM`) |
+| `--duration <seconds>` | Duration in seconds — used to compute start or stop |
 
 ### `rocky projects`
 

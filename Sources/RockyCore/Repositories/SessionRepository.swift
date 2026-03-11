@@ -9,4 +9,6 @@ public protocol SessionRepository: Sendable {
     func getRunningWithProjects() async throws -> [(Session, Project)]
     func insert(projectId: Int, startTime: Date, endTime: Date?) async throws
     func getSessions(from: Date, to: Date, projectId: Int?) async throws -> [(Session, Project)]
+    func getById(_ id: Int) async throws -> Session?
+    func update(id: Int, startTime: Date, endTime: Date?) async throws -> Session
 }

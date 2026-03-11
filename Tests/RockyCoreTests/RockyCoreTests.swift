@@ -620,6 +620,676 @@ struct ReportServiceTests {
     }
 }
 
+// MARK: - Session Edit Tests
+
+@Suite("SessionService.editSession")
+struct SessionEditTests {
+    private func makeServices() -> (MockProjectRepository, MockSessionRepository, SessionService) {
+        let projectRepo = MockProjectRepository()
+        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
+        let sessionService = SessionService(repository: sessionRepo)
+        return (projectRepo, sessionRepo, sessionService)
+    }
+
+    private let cal = Calendar.current
+
+    private func insertSession(
+        _ sessionRepo: MockSessionRepository,
+        projectId: Int,
+        startHour: Int, startDay: Int = 6,
+        endHour: Int, endDay: Int = 6
+    ) async throws {
+        let start = cal.date(from: DateComponents(year: 2026, month: 3, day: startDay, hour: startHour))!
+        let end = cal.date(from: DateComponents(year: 2026, month: 3, day: endDay, hour: endHour))!
+        try await sessionRepo.insert(projectId: projectId, startTime: start, endTime: end)
+    }
+
+    @Test("edit with --start only updates start, keeps stop")
+    func editStartOnly() async throws {
+        let (projectRepo, sessionRepo, service) = makeServices()
+        let project = try await projectRepo.findOrCreate(name: "test")
+        try await insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
+
+        let all = try await sessionRepo.getSessions(
+            from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+        )
+        let sessionId = all[0].0.id
+        let originalEnd = all[0].0.endTime!
+
+        let newStart = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 9))!
+        let updated = try await service.editSession(id: sessionId, newStart: newStart, newStop: nil, newDuration: nil)
+
+        #expect(updated.startTime == newStart)
+        #expect(updated.endTime == originalEnd)
+    }
+
+    @Test("edit with --stop only updates stop, keeps start")
+    func editStopOnly() async throws {
+        let (projectRepo, sessionRepo, service) = makeServices()
+        let project = try await projectRepo.findOrCreate(name: "test")
+        try await insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
+
+        let all = try await sessionRepo.getSessions(
+            from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+        )
+        let sessionId = all[0].0.id
+        let originalStart = all[0].0.startTime
+
+        let newStop = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 14))!
+        let updated = try await service.editSession(id: sessionId, newStart: nil, newStop: newStop, newDuration: nil)
+
+        #expect(updated.startTime == originalStart)
+        #expect(updated.endTime == newStop)
+    }
+
+    @Test("edit with --start + --stop updates both")
+    func editStartAndStop() async throws {
+        let (projectRepo, sessionRepo, service) = makeServices()
+        let project = try await projectRepo.findOrCreate(name: "test")
+        try await insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
+
+        let all = try await sessionRepo.getSessions(
+            from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+        )
+        let sessionId = all[0].0.id
+
+        let newStart = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 9))!
+        let newStop = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
+        let updated = try await service.editSession(id: sessionId, newStart: newStart, newStop: newStop, newDuration: nil)
+
+        #expect(updated.startTime == newStart)
+        #expect(updated.endTime == newStop)
+    }
+
+    @Test("edit with --duration only keeps start, computes stop")
+    func editDurationOnly() async throws {
+        let (projectRepo, sessionRepo, service) = makeServices()
+        let project = try await projectRepo.findOrCreate(name: "test")
+        try await insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
+
+        let all = try await sessionRepo.getSessions(
+            from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+        )
+        let sessionId = all[0].0.id
+        let originalStart = all[0].0.startTime
+
+        let updated = try await service.editSession(id: sessionId, newStart: nil, newStop: nil, newDuration: 3600)
+
+        #expect(updated.startTime == originalStart)
+        #expect(abs(updated.endTime!.timeIntervalSince(originalStart) - 3600) < 1)
+    }
+
+    @Test("edit with --start + --duration sets start and computes stop")
+    func editStartAndDuration() async throws {
+        let (projectRepo, sessionRepo, service) = makeServices()
+        let project = try await projectRepo.findOrCreate(name: "test")
+        try await insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
+
+        let all = try await sessionRepo.getSessions(
+            from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+        )
+        let sessionId = all[0].0.id
+
+        let newStart = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 9))!
+        let updated = try await service.editSession(id: sessionId, newStart: newStart, newStop: nil, newDuration: 5400)
+
+        #expect(updated.startTime == newStart)
+        #expect(abs(updated.endTime!.timeIntervalSince(newStart) - 5400) < 1)
+    }
+
+    @Test("edit with --stop + --duration sets stop and computes start")
+    func editStopAndDuration() async throws {
+        let (projectRepo, sessionRepo, service) = makeServices()
+        let project = try await projectRepo.findOrCreate(name: "test")
+        try await insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
+
+        let all = try await sessionRepo.getSessions(
+            from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+        )
+        let sessionId = all[0].0.id
+
+        let newStop = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 14))!
+        let updated = try await service.editSession(id: sessionId, newStart: nil, newStop: newStop, newDuration: 7200)
+
+        #expect(abs(updated.startTime.timeIntervalSince(newStop) + 7200) < 1)
+        #expect(updated.endTime == newStop)
+    }
+
+    @Test("edit with all three flags throws overdetermined")
+    func editOverdetermined() async throws {
+        let (projectRepo, sessionRepo, service) = makeServices()
+        let project = try await projectRepo.findOrCreate(name: "test")
+        try await insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
+
+        let all = try await sessionRepo.getSessions(
+            from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+        )
+        let sessionId = all[0].0.id
+
+        let newStart = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 9))!
+        let newStop = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
+
+        await #expect(throws: RockyCoreError.self) {
+            try await service.editSession(id: sessionId, newStart: newStart, newStop: newStop, newDuration: 3600)
+        }
+    }
+
+    @Test("edit non-existent session throws sessionNotFound")
+    func editNotFound() async throws {
+        let (_, _, service) = makeServices()
+
+        await #expect(throws: RockyCoreError.self) {
+            try await service.editSession(id: 999, newStart: Date(), newStop: nil, newDuration: nil)
+        }
+    }
+
+    @Test("edit stop of running session throws cannotEditRunningSessionStop")
+    func editRunningStop() async throws {
+        let (projectRepo, sessionRepo, service) = makeServices()
+        let project = try await projectRepo.findOrCreate(name: "test")
+        try await sessionRepo.start(projectId: project.id)
+
+        let running = try await sessionRepo.getRunning()
+        let sessionId = running[0].id
+
+        await #expect(throws: RockyCoreError.self) {
+            try await service.editSession(id: sessionId, newStart: nil, newStop: Date(), newDuration: nil)
+        }
+    }
+
+    @Test("edit start in future throws startTimeInFuture")
+    func editFutureStart() async throws {
+        let (projectRepo, sessionRepo, service) = makeServices()
+        let project = try await projectRepo.findOrCreate(name: "test")
+        try await insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
+
+        let all = try await sessionRepo.getSessions(
+            from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+        )
+        let sessionId = all[0].0.id
+
+        let futureStart = Date().addingTimeInterval(86400)
+
+        await #expect(throws: RockyCoreError.self) {
+            try await service.editSession(id: sessionId, newStart: futureStart, newStop: nil, newDuration: nil)
+        }
+    }
+
+    @Test("edit with stop before start throws stopBeforeStart")
+    func editStopBeforeStart() async throws {
+        let (projectRepo, sessionRepo, service) = makeServices()
+        let project = try await projectRepo.findOrCreate(name: "test")
+        try await insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
+
+        let all = try await sessionRepo.getSessions(
+            from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+        )
+        let sessionId = all[0].0.id
+
+        let badStop = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 9))!
+
+        await #expect(throws: RockyCoreError.self) {
+            try await service.editSession(id: sessionId, newStart: nil, newStop: badStop, newDuration: nil)
+        }
+    }
+
+    @Test("edit with zero duration throws durationNotPositive")
+    func editZeroDuration() async throws {
+        let (projectRepo, sessionRepo, service) = makeServices()
+        let project = try await projectRepo.findOrCreate(name: "test")
+        try await insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
+
+        let all = try await sessionRepo.getSessions(
+            from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+        )
+        let sessionId = all[0].0.id
+
+        await #expect(throws: RockyCoreError.self) {
+            try await service.editSession(id: sessionId, newStart: nil, newStop: nil, newDuration: 0)
+        }
+    }
+
+    @Test("edit with negative duration throws durationNotPositive")
+    func editNegativeDuration() async throws {
+        let (projectRepo, sessionRepo, service) = makeServices()
+        let project = try await projectRepo.findOrCreate(name: "test")
+        try await insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
+
+        let all = try await sessionRepo.getSessions(
+            from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+        )
+        let sessionId = all[0].0.id
+
+        await #expect(throws: RockyCoreError.self) {
+            try await service.editSession(id: sessionId, newStart: nil, newStop: nil, newDuration: -100)
+        }
+    }
+
+    @Test("edit start of running session is allowed")
+    func editRunningStart() async throws {
+        let (projectRepo, sessionRepo, service) = makeServices()
+        let project = try await projectRepo.findOrCreate(name: "test")
+        try await sessionRepo.start(projectId: project.id)
+
+        let running = try await sessionRepo.getRunning()
+        let sessionId = running[0].id
+
+        let newStart = Date().addingTimeInterval(-7200)
+        let updated = try await service.editSession(id: sessionId, newStart: newStart, newStop: nil, newDuration: nil)
+
+        #expect(abs(updated.startTime.timeIntervalSince(newStart)) < 1)
+        #expect(updated.isRunning)
+    }
+
+    @Test("edit session spanning midnight")
+    func editMidnightSession() async throws {
+        let (projectRepo, sessionRepo, service) = makeServices()
+        let project = try await projectRepo.findOrCreate(name: "test")
+        try await insertSession(sessionRepo, projectId: project.id, startHour: 23, startDay: 5, endHour: 10, endDay: 6)
+
+        let all = try await sessionRepo.getSessions(
+            from: cal.date(from: DateComponents(year: 2026, month: 3, day: 5))!,
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+        )
+        let sessionId = all[0].0.id
+
+        let newStop = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 1, minute: 30))!
+        let updated = try await service.editSession(id: sessionId, newStart: nil, newStop: newStop, newDuration: nil)
+
+        #expect(updated.endTime == newStop)
+        #expect(updated.duration() == 9000) // 2.5 hours
+    }
+}
+
+// MARK: - MockSessionRepository getById/update Tests
+
+@Suite("MockSessionRepository Edit")
+struct MockSessionEditTests {
+    @Test("getById returns correct session")
+    func getById() async throws {
+        let projectRepo = MockProjectRepository()
+        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
+        let project = try await projectRepo.findOrCreate(name: "test")
+        let cal = Calendar.current
+        let start = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!
+        let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
+        try await sessionRepo.insert(projectId: project.id, startTime: start, endTime: end)
+
+        let sessions = try await sessionRepo.getSessions(
+            from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+        )
+        let session = try await sessionRepo.getById(sessions[0].0.id)
+        #expect(session != nil)
+        #expect(session?.startTime == start)
+    }
+
+    @Test("getById returns nil for unknown id")
+    func getByIdUnknown() async throws {
+        let projectRepo = MockProjectRepository()
+        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
+        let session = try await sessionRepo.getById(999)
+        #expect(session == nil)
+    }
+
+    @Test("update modifies session times")
+    func update() async throws {
+        let projectRepo = MockProjectRepository()
+        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
+        let project = try await projectRepo.findOrCreate(name: "test")
+        let cal = Calendar.current
+        let start = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!
+        let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
+        try await sessionRepo.insert(projectId: project.id, startTime: start, endTime: end)
+
+        let sessions = try await sessionRepo.getSessions(
+            from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+        )
+        let sessionId = sessions[0].0.id
+
+        let newStart = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 9))!
+        let newEnd = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 12))!
+        let updated = try await sessionRepo.update(id: sessionId, startTime: newStart, endTime: newEnd)
+
+        #expect(updated.startTime == newStart)
+        #expect(updated.endTime == newEnd)
+
+        let fetched = try await sessionRepo.getById(sessionId)
+        #expect(fetched?.startTime == newStart)
+        #expect(fetched?.endTime == newEnd)
+    }
+}
+
+// MARK: - DateTimeFormat Tests
+
+@Suite("DateTimeFormat")
+struct DateTimeFormatTests {
+    private let cal = Calendar.current
+
+    // MARK: - Parsing
+
+    @Test("parse valid datetime string")
+    func parseValid() throws {
+        let date = try DateTimeFormat.parse("2026-03-10 17:30")
+        let comps = cal.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        #expect(comps.year == 2026)
+        #expect(comps.month == 3)
+        #expect(comps.day == 10)
+        #expect(comps.hour == 17)
+        #expect(comps.minute == 30)
+    }
+
+    @Test("parse midnight")
+    func parseMidnight() throws {
+        let date = try DateTimeFormat.parse("2026-03-10 00:00")
+        let comps = cal.dateComponents([.hour, .minute], from: date)
+        #expect(comps.hour == 0)
+        #expect(comps.minute == 0)
+    }
+
+    @Test("parse end of day")
+    func parseEndOfDay() throws {
+        let date = try DateTimeFormat.parse("2026-03-10 23:59")
+        let comps = cal.dateComponents([.hour, .minute], from: date)
+        #expect(comps.hour == 23)
+        #expect(comps.minute == 59)
+    }
+
+    @Test("parse invalid datetime throws")
+    func parseInvalid() {
+        #expect(throws: Error.self) {
+            try DateTimeFormat.parse("not-a-date")
+        }
+    }
+
+    @Test("parse empty string throws")
+    func parseEmpty() {
+        #expect(throws: Error.self) {
+            try DateTimeFormat.parse("")
+        }
+    }
+
+    @Test("parse date-only string throws (missing time)")
+    func parseDateOnly() {
+        #expect(throws: Error.self) {
+            try DateTimeFormat.parse("2026-03-10")
+        }
+    }
+
+    @Test("parseDate valid date string")
+    func parseDateValid() throws {
+        let date = try DateTimeFormat.parseDate("2026-03-10")
+        let comps = cal.dateComponents([.year, .month, .day], from: date)
+        #expect(comps.year == 2026)
+        #expect(comps.month == 3)
+        #expect(comps.day == 10)
+    }
+
+    @Test("parseDate invalid string throws")
+    func parseDateInvalid() {
+        #expect(throws: Error.self) {
+            try DateTimeFormat.parseDate("not-a-date")
+        }
+    }
+
+    // MARK: - Format Styles
+
+    @Test("time format produces non-empty string")
+    func timeFormat() {
+        let date = cal.date(from: DateComponents(year: 2026, month: 3, day: 10, hour: 17, minute: 5))!
+        let result = date.formatted(DateTimeFormat.time)
+        #expect(!result.isEmpty)
+        // Locale-dependent, so just check it contains the minute
+        #expect(result.contains("05") || result.contains("5"))
+    }
+
+    @Test("dayOfWeek produces abbreviated weekday")
+    func dayOfWeekFormat() {
+        let date = cal.date(from: DateComponents(year: 2026, month: 3, day: 10))! // Tuesday
+        let result = date.formatted(DateTimeFormat.dayOfWeek)
+        #expect(!result.isEmpty)
+        #expect(result.count <= 4) // abbreviated weekdays are short
+    }
+
+    @Test("dateWithDay includes weekday and month")
+    func dateWithDayFormat() {
+        let date = cal.date(from: DateComponents(year: 2026, month: 3, day: 10))!
+        let result = date.formatted(DateTimeFormat.dateWithDay)
+        #expect(!result.isEmpty)
+        #expect(result.count >= 8) // e.g. "Tue, Mar 10"
+    }
+
+    @Test("fullDate includes year")
+    func fullDateFormat() {
+        let date = cal.date(from: DateComponents(year: 2026, month: 3, day: 10))!
+        let result = date.formatted(DateTimeFormat.fullDate)
+        #expect(result.contains("2026"))
+    }
+
+    @Test("dateWithDayYear includes year")
+    func dateWithDayYearFormat() {
+        let date = cal.date(from: DateComponents(year: 2026, month: 3, day: 10))!
+        let result = date.formatted(DateTimeFormat.dateWithDayYear)
+        #expect(result.contains("2026"))
+    }
+
+    @Test("monthYear produces full month name with year")
+    func monthYearFormat() {
+        let date = cal.date(from: DateComponents(year: 2026, month: 3, day: 10))!
+        let result = date.formatted(DateTimeFormat.monthYear)
+        #expect(result.contains("2026"))
+    }
+
+    @Test("shortMonthYear produces abbreviated month with year")
+    func shortMonthYearFormat() {
+        let date = cal.date(from: DateComponents(year: 2026, month: 3, day: 10))!
+        let result = date.formatted(DateTimeFormat.shortMonthYear)
+        #expect(result.contains("2026"))
+    }
+
+    @Test("shortDate produces day and month")
+    func shortDateFormat() {
+        let date = cal.date(from: DateComponents(year: 2026, month: 3, day: 10))!
+        let result = date.formatted(DateTimeFormat.shortDate)
+        #expect(!result.isEmpty)
+        #expect(!result.contains("2026")) // no year
+    }
+
+    @Test("year produces year only")
+    func yearFormat() {
+        let date = cal.date(from: DateComponents(year: 2026, month: 3, day: 10))!
+        let result = date.formatted(DateTimeFormat.year)
+        #expect(result == "2026")
+    }
+
+    // MARK: - Period Range
+
+    @Test("periodRange formats exclusive end date")
+    func periodRange() {
+        let from = cal.date(from: DateComponents(year: 2026, month: 3, day: 2))!
+        let to = cal.date(from: DateComponents(year: 2026, month: 3, day: 9))! // exclusive
+        let result = DateTimeFormat.periodRange(from: from, to: to)
+        #expect(result.contains("—"))
+        #expect(result.contains("2026")) // year appears in end date
+    }
+
+    @Test("periodRange single day range")
+    func periodRangeSingleDay() {
+        let from = cal.date(from: DateComponents(year: 2026, month: 3, day: 10))!
+        let to = cal.date(from: DateComponents(year: 2026, month: 3, day: 11))! // exclusive, so shows Mar 10
+        let result = DateTimeFormat.periodRange(from: from, to: to)
+        #expect(result.contains("—"))
+    }
+
+    // MARK: - Round-trip
+
+    @Test("parse and format round-trip preserves date components")
+    func roundTrip() throws {
+        let parsed = try DateTimeFormat.parse("2026-06-15 09:45")
+        let comps = cal.dateComponents([.year, .month, .day, .hour, .minute], from: parsed)
+        #expect(comps.year == 2026)
+        #expect(comps.month == 6)
+        #expect(comps.day == 15)
+        #expect(comps.hour == 9)
+        #expect(comps.minute == 45)
+    }
+}
+
+// MARK: - DurationFormat Tests
+
+@Suite("DurationFormat")
+struct DurationFormatTests {
+    @Test("formats zero seconds")
+    func zero() {
+        #expect(DurationFormat.formatted(0) == "0h 00s")
+    }
+
+    @Test("formats seconds under a minute")
+    func underMinute() {
+        let result = DurationFormat.formatted(30)
+        #expect(result.contains("0h"))
+        #expect(result.contains("30s"))
+    }
+
+    @Test("formats exactly one minute")
+    func oneMinute() {
+        #expect(DurationFormat.formatted(60) == "0h 01m")
+    }
+
+    @Test("formats five minutes with zero-padding")
+    func fiveMinutes() {
+        #expect(DurationFormat.formatted(300) == "0h 05m")
+    }
+
+    @Test("formats 45 minutes")
+    func fortyFiveMinutes() {
+        #expect(DurationFormat.formatted(2700) == "0h 45m")
+    }
+
+    @Test("formats exactly one hour")
+    func oneHour() {
+        #expect(DurationFormat.formatted(3600) == "1h 00m")
+    }
+
+    @Test("formats one hour thirty minutes")
+    func oneHourThirty() {
+        #expect(DurationFormat.formatted(5400) == "1h 30m")
+    }
+
+    @Test("formats two hours thirty minutes")
+    func twoHoursThirty() {
+        #expect(DurationFormat.formatted(9000) == "2h 30m")
+    }
+
+    @Test("formats eleven hours")
+    func elevenHours() {
+        #expect(DurationFormat.formatted(39600) == "11h 00m")
+    }
+
+    @Test("hoursOnly formats as hours")
+    func hoursOnly() {
+        #expect(DurationFormat.formatted(39600, hoursOnly: true) == "11h")
+    }
+
+    @Test("hoursOnly formats large values")
+    func hoursOnlyLarge() {
+        #expect(DurationFormat.formatted(108000, hoursOnly: true) == "30h")
+    }
+
+    @Test("zero-padding applies to single-digit minutes")
+    func zeroPaddingSingleDigit() {
+        let result = DurationFormat.formatted(3660) // 1h 1m
+        #expect(result == "1h 01m")
+    }
+
+    @Test("no double-padding on two-digit minutes")
+    func noDoublePadding() {
+        let result = DurationFormat.formatted(4200) // 1h 10m
+        #expect(result == "1h 10m")
+    }
+}
+
+// MARK: - Calendar+Rocky Tests
+
+@Suite("Calendar+Rocky")
+struct CalendarRockyTests {
+    private let cal = Calendar.current
+
+    @Test("weekdayName returns correct name for Sunday (1)")
+    func weekdaySunday() {
+        #expect(cal.weekdayName(1) == "Sunday")
+    }
+
+    @Test("weekdayName returns correct name for Monday (2)")
+    func weekdayMonday() {
+        #expect(cal.weekdayName(2) == "Monday")
+    }
+
+    @Test("weekdayName returns correct name for Saturday (7)")
+    func weekdaySaturday() {
+        #expect(cal.weekdayName(7) == "Saturday")
+    }
+
+    @Test("weekdayName returns Unknown for invalid weekday 0")
+    func weekdayInvalidZero() {
+        #expect(cal.weekdayName(0) == "Unknown")
+    }
+
+    @Test("weekdayName returns Unknown for invalid weekday 8")
+    func weekdayInvalidEight() {
+        #expect(cal.weekdayName(8) == "Unknown")
+    }
+
+    @Test("mondayFirstVeryShortWeekdaySymbols has 7 elements")
+    func mondayFirstCount() {
+        #expect(cal.mondayFirstVeryShortWeekdaySymbols.count == 7)
+    }
+
+    @Test("mondayFirstVeryShortWeekdaySymbols starts with Monday")
+    func mondayFirstStartsWithMonday() {
+        let symbols = cal.mondayFirstVeryShortWeekdaySymbols
+        let mondaySymbol = cal.veryShortStandaloneWeekdaySymbols[1] // index 1 = Monday
+        #expect(symbols[0] == mondaySymbol)
+    }
+
+    @Test("mondayFirstVeryShortWeekdaySymbols ends with Sunday")
+    func mondayFirstEndsWithSunday() {
+        let symbols = cal.mondayFirstVeryShortWeekdaySymbols
+        let sundaySymbol = cal.veryShortStandaloneWeekdaySymbols[0] // index 0 = Sunday
+        #expect(symbols[6] == sundaySymbol)
+    }
+
+    @Test("monthAbbreviation returns correct month")
+    func monthAbbreviationMarch() {
+        let date = cal.date(from: DateComponents(year: 2026, month: 3, day: 10))!
+        #expect(cal.monthAbbreviation(for: date) == "Mar")
+    }
+
+    @Test("monthAbbreviation for January")
+    func monthAbbreviationJanuary() {
+        let date = cal.date(from: DateComponents(year: 2026, month: 1, day: 1))!
+        #expect(cal.monthAbbreviation(for: date) == "Jan")
+    }
+
+    @Test("monthAbbreviation for December")
+    func monthAbbreviationDecember() {
+        let date = cal.date(from: DateComponents(year: 2026, month: 12, day: 25))!
+        #expect(cal.monthAbbreviation(for: date) == "Dec")
+    }
+}
+
 // MARK: - SQLite Integration Tests (real database, serialized)
 
 actor TestDatabase {

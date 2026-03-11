@@ -255,6 +255,11 @@ public struct GroupedReportRow: Sendable {
 public struct VerboseSessionRow: Sendable {
     public let session: Session
     public let projectName: String
+
+    public init(session: Session, projectName: String) {
+        self.session = session
+        self.projectName = projectName
+    }
 }
 
 private enum Grouping {

@@ -141,6 +141,88 @@ rocky dashboard
 
 ---
 
+## rocky edit [project] [flags]
+
+Edit the start, stop, or duration of a session.
+
+### Interactive mode
+
+```bash
+rocky edit rocky
+```
+
+Shows recent sessions for the project and prompts for which to edit:
+
+```
+Sessions for rocky:
+
+   ID   Date   Start      Stop   Duration
+──────────────────────────────────────────
+   41   Mon    23:20     10:14    10h 54m
+▶  42   Tue    17:05   running     0h 05m
+──────────────────────────────────────────
+
+Edit which? 41
+
+  Mon 09 Mar    23:20 — 10:14    10h 54m
+
+  1. Start    (23:20)
+  2. Stop     (10:14)
+  3. Duration (10h 54m)
+
+Edit which field? 3
+New value (seconds): 7800
+
+Updated: Mon 09 Mar  23:20 — 01:30  (2h 10m)
+```
+
+### Non-interactive mode (flags)
+
+```bash
+rocky edit --session 41 --start "2026-03-09 23:00" --stop "2026-03-10 01:30"
+rocky edit --session 41 --start "2026-03-09 23:00"
+rocky edit --session 41 --stop "2026-03-10 01:30"
+rocky edit --session 41 --duration 7800
+rocky edit --session 41 --start "2026-03-09 23:00" --duration 7800
+rocky edit --session 41 --stop "2026-03-10 01:30" --duration 7800
+```
+
+### Flags
+
+| Flag | Description |
+|------|-------------|
+| `--session <id>` | Session ID (shown in `--verbose` output) |
+| `--start <datetime>` | New start time (`YYYY-MM-DD HH:MM`) |
+| `--stop <datetime>` | New stop time (`YYYY-MM-DD HH:MM`) |
+| `--duration <seconds>` | Duration in seconds — used to compute start or stop |
+
+### Flag combinations
+
+| Flags | Result |
+|-------|--------|
+| `--start + --stop` | Set both explicitly |
+| `--start` | Change start, keep existing stop |
+| `--stop` | Change stop, keep existing start |
+| `--duration` | Keep existing start, set stop = start + duration |
+| `--start + --duration` | Set new start, set stop = new start + duration |
+| `--stop + --duration` | Set new stop, set start = new stop − duration |
+| `--start + --stop + --duration` | Error — overdetermined |
+
+### Behaviour
+
+- **Interactive mode** (`rocky edit <project>`): shows sessions for the project, prompts for session ID, field, and new value
+- **Non-interactive mode** (`rocky edit --session <id> --start/--stop/--duration`): no prompts, fails with error if required flags are missing
+- Datetime format is always `YYYY-MM-DD HH:MM` in local timezone — no ambiguity for multi-day sessions
+- Duration input is in seconds (e.g. `7800` for 2h 10m). Output displays as `Xh Ym`.
+- **Validation:**
+  - Computed or explicit stop time must be after start time
+  - Cannot edit the stop time of a running session (stop it first)
+  - Cannot set start time to the future
+  - Duration must be positive
+- On success, print the updated session details
+
+---
+
 ## rocky config
 
 Manage user preferences.

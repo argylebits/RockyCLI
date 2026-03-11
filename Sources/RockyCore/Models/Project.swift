@@ -26,6 +26,12 @@ public enum RockyCoreError: Error, CustomStringConvertible {
     case projectNotFound(String)
     case timerAlreadyRunning(String)
     case noRunningTimers
+    case sessionNotFound(Int)
+    case cannotEditRunningSessionStop
+    case startTimeInFuture
+    case stopBeforeStart
+    case durationNotPositive
+    case overdetermined
 
     public var description: String {
         switch self {
@@ -37,6 +43,18 @@ public enum RockyCoreError: Error, CustomStringConvertible {
             return "Timer already running for \(name)"
         case .noRunningTimers:
             return "No timers currently running."
+        case .sessionNotFound(let id):
+            return "No session found with ID \(id)."
+        case .cannotEditRunningSessionStop:
+            return "Cannot edit the stop time of a running session. Stop it first."
+        case .startTimeInFuture:
+            return "Start time cannot be in the future."
+        case .stopBeforeStart:
+            return "Stop time must be after start time."
+        case .durationNotPositive:
+            return "Duration must be positive."
+        case .overdetermined:
+            return "Cannot specify --start, --stop, and --duration together."
         }
     }
 }
