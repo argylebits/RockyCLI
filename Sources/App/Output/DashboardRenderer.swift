@@ -39,7 +39,6 @@ enum DashboardRenderer {
     private static let outerPad = 2
     private static let innerWidth = 70
     private static let totalWidth = innerWidth + outerPad * 2
-    private static let widgetGap = 2
 
     // MARK: - Public Entry Point
 
@@ -51,44 +50,48 @@ enum DashboardRenderer {
         lines.append(emptyOuterLine())
 
         // Running timers
-        lines += renderRunningTimers(data.runningTimers)
-        lines.append(emptyOuterLine())
-
-        // Time summaries
-        lines += renderTimeSummaries(data.timeSummary)
-        lines.append(emptyOuterLine())
-
-        // Activity heatmap (full width)
-        let heatmapLegend = [intensityNone, " none   ",
-                             intensityLight, " light   ",
-                             intensityMod, " moderate   ",
-                             intensityBusy, " busy   ",
-                             intensityHeavy, " heavy"].joined()
         lines += renderFullWidget(
-            title: "Activity (last 12 weeks)",
-            content: renderHeatmapContent(data.heatmap),
-            legend: heatmapLegend
+            title: "Running",
+            content: renderRunningTimersContent(data.runningTimers)
         )
         lines.append(emptyOuterLine())
 
-        // Trend sparkline (full width)
+        // Time summaries
         lines += renderFullWidget(
-            title: "Trend (last 12 weeks)",
+            title: "Time Summary",
+            content: renderTimeSummariesContent(data.timeSummary)
+        )
+        lines.append(emptyOuterLine())
+
+        // Activity heatmap
+        lines += renderFullWidget(
+            title: "Activity Heatmap",
+            content: renderHeatmapContent(data.heatmap)
+        )
+        lines.append(emptyOuterLine())
+
+        // Trend sparkline
+        lines += renderFullWidget(
+            title: "Weekly Trend",
             content: renderSparklineContent(data.sparkline)
         )
         lines.append(emptyOuterLine())
 
-        // Projects + Peak Hours (side by side)
-        let halfContentWidth = ((innerWidth - widgetGap) / 2) - 2 - 4 // minus borders, minus padding
-        lines += renderSideBySide(
-            leftTitle: "Projects This Week",
-            leftContent: renderProjectsContent(data.projectDistribution, width: halfContentWidth),
-            rightTitle: "Peak Hours",
-            rightContent: renderPeakHoursContent(data.peakHours, width: halfContentWidth)
+        // Projects
+        lines += renderFullWidget(
+            title: "Projects This Week",
+            content: renderProjectsContent(data.projectDistribution, width: fullContentWidth)
         )
         lines.append(emptyOuterLine())
 
-        // Streaks & Stats (full width)
+        // Peak Hours
+        lines += renderFullWidget(
+            title: "Peak Hours",
+            content: renderPeakHoursContent(data.peakHours, width: fullContentWidth)
+        )
+        lines.append(emptyOuterLine())
+
+        // Streaks & Stats
         lines += renderFullWidget(
             title: "Streaks & Stats",
             content: renderStatsContent(data.stats)
@@ -121,137 +124,71 @@ enum DashboardRenderer {
 
     // MARK: - Full Width Widget
 
-    private static func renderFullWidget(
-        title: String, content: [String], legend: String? = nil
-    ) -> [String] {
-        let contentWidest = content.map(\.count).max() ?? 0
-        let legendWidth = legend?.count ?? 0
-        let boxContent = max(contentWidest, legendWidth, 30)
-        let boxInner = boxContent + 4 // 2 spaces padding each side
+    private static let fullBoxInner = innerWidth - 2 // minus │ on each side
+    private static let fullContentWidth = fullBoxInner - 4 // minus 2 spaces padding each side
 
+    private static func renderFullWidget(
+        title: String, content: [String]
+    ) -> [String] {
         var lines: [String] = []
         lines.append(outerWrap(title))
-        lines.append(outerWrap(String(rndTL) + String(repeating: sngH, count: boxInner) + String(rndTR)))
-        lines.append(outerWrap(String(sngV) + pad(boxInner) + String(sngV)))
+        lines.append(outerWrap(String(rndTL) + String(repeating: sngH, count: fullBoxInner) + String(rndTR)))
+        lines.append(outerWrap(String(sngV) + pad(fullBoxInner) + String(sngV)))
 
         for line in content {
-            let linepad = max(0, boxContent - line.count)
+            let linepad = max(0, fullContentWidth - line.count)
             lines.append(outerWrap(
                 String(sngV) + pad(2) + line + pad(linepad) + pad(2) + String(sngV)
             ))
         }
 
-        lines.append(outerWrap(String(sngV) + pad(boxInner) + String(sngV)))
-        lines.append(outerWrap(String(rndBL) + String(repeating: sngH, count: boxInner) + String(rndBR)))
-
-        if let legend {
-            lines.append(outerWrap(legend))
-        }
+        lines.append(outerWrap(String(sngV) + pad(fullBoxInner) + String(sngV)))
+        lines.append(outerWrap(String(rndBL) + String(repeating: sngH, count: fullBoxInner) + String(rndBR)))
 
         return lines
     }
 
-    // MARK: - Side-by-Side Widgets
+    // MARK: - Running Timers Content
 
-    private static func renderSideBySide(
-        leftTitle: String, leftContent: [String],
-        rightTitle: String, rightContent: [String]
-    ) -> [String] {
-        let halfWidth = (innerWidth - widgetGap) / 2
-        let boxInner = halfWidth - 2 // minus │ on each side
-        let contentWidth = boxInner - 4 // minus 2 padding each side
-
-        let maxRows = max(leftContent.count, rightContent.count)
-
-        func widgetLine(_ content: String, width: Int) -> String {
-            let linepad = max(0, width - content.count)
-            return String(sngV) + pad(2) + content + pad(linepad) + pad(2) + String(sngV)
-        }
-
-        func emptyWidget(_ width: Int) -> String {
-            String(sngV) + pad(width) + String(sngV)
-        }
-
-        let topBorder = String(rndTL) + String(repeating: sngH, count: boxInner) + String(rndTR)
-        let bottomBorder = String(rndBL) + String(repeating: sngH, count: boxInner) + String(rndBR)
-
-        var lines: [String] = []
-
-        // Titles
-        lines.append(outerWrap(
-            rightPad(leftTitle, halfWidth) + pad(widgetGap) + rightTitle
-        ))
-
-        // Top borders
-        lines.append(outerWrap(
-            rightPad(topBorder, halfWidth) + pad(widgetGap) + topBorder
-        ))
-
-        // Empty row
-        lines.append(outerWrap(
-            rightPad(emptyWidget(boxInner), halfWidth) + pad(widgetGap) + emptyWidget(boxInner)
-        ))
-
-        // Content rows
-        for i in 0..<maxRows {
-            let leftLine = i < leftContent.count ? leftContent[i] : ""
-            let rightLine = i < rightContent.count ? rightContent[i] : ""
-            let left = widgetLine(leftLine, width: contentWidth)
-            let right = widgetLine(rightLine, width: contentWidth)
-            lines.append(outerWrap(rightPad(left, halfWidth) + pad(widgetGap) + right))
-        }
-
-        // Empty row
-        lines.append(outerWrap(
-            rightPad(emptyWidget(boxInner), halfWidth) + pad(widgetGap) + emptyWidget(boxInner)
-        ))
-
-        // Bottom borders
-        lines.append(outerWrap(
-            rightPad(bottomBorder, halfWidth) + pad(widgetGap) + bottomBorder
-        ))
-
-        return lines
-    }
-
-    // MARK: - Running Timers
-
-    private static func renderRunningTimers(_ timers: [RunningTimer]) -> [String] {
+    private static func renderRunningTimersContent(_ timers: [RunningTimer]) -> [String] {
         if timers.isEmpty {
-            return [outerWrap("No timers running.")]
+            return ["No timers running."]
         }
 
-        let list = timers.map { "\($0.projectName) (\(DurationFormat.formatted($0.duration)))" }
-            .joined(separator: ", ")
-
-        return [outerWrap("\u{25B6} Running: \(list)")]
+        return timers.map { "\u{25B6} \($0.projectName) (\(DurationFormat.formatted($0.duration)))" }
     }
 
-    // MARK: - Time Summaries
+    // MARK: - Time Summaries Content
 
-    private static func renderTimeSummaries(_ summary: TimeSummary) -> [String] {
+    private static func renderTimeSummariesContent(_ summary: TimeSummary) -> [String] {
         let weekDiff = summary.weekDifference
+        let monthDiff = summary.monthDifference
+
+        // Compute delta duration strings up front to find max width
+        let weekDiffStr = weekDiff != 0 ? DurationFormat.formatted(abs(weekDiff)) : ""
+        let monthDiffStr = monthDiff != 0 ? DurationFormat.formatted(abs(monthDiff)) : ""
+        let maxDiffWidth = max(weekDiffStr.count, monthDiffStr.count)
+
         let weekStr: String
         if weekDiff != 0 {
             let arrow = weekDiff > 0 ? "\u{2191}" : "\u{2193}"
-            weekStr = "  \(arrow) \(DurationFormat.formatted(abs(weekDiff))) from last week"
+            weekStr = "  " + arrow + "  " + leftPad(weekDiffStr, maxDiffWidth) + " from last week"
         } else {
             weekStr = ""
         }
 
-        let monthDiff = summary.monthDifference
         let monthStr: String
         if monthDiff != 0 {
             let arrow = monthDiff > 0 ? "\u{2191}" : "\u{2193}"
-            monthStr = "  \(arrow) \(DurationFormat.formatted(abs(monthDiff))) from last month"
+            monthStr = "  " + arrow + "  " + leftPad(monthDiffStr, maxDiffWidth) + " from last month"
         } else {
             monthStr = ""
         }
 
         return [
-            outerWrap("This Week   " + leftPad(DurationFormat.formatted(summary.thisWeek), 8) + weekStr),
-            outerWrap("This Month  " + leftPad(DurationFormat.formatted(summary.thisMonth), 8) + monthStr),
-            outerWrap("This Year   " + leftPad(DurationFormat.formatted(summary.thisYear, hoursOnly: true), 8)),
+            "This Week   " + leftPad(DurationFormat.formatted(summary.thisWeek), 8) + weekStr,
+            "This Month  " + leftPad(DurationFormat.formatted(summary.thisMonth), 8) + monthStr,
+            "This Year   " + leftPad(DurationFormat.formatted(summary.thisYear, hoursOnly: true), 8),
         ]
     }
 
@@ -265,44 +202,44 @@ enum DashboardRenderer {
 
         let dayLabels = Calendar.current.mondayFirstVeryShortWeekdaySymbols
 
-        // Month labels
-        var monthRow = pad(4)
+        // Month labels — placed into a fixed-width buffer so 3-char
+        // abbreviations can naturally span into adjacent column space
+        let labelWidth = 3
+        let gridWidth = labelWidth + heatmap.weeks.count * 2 - 1
+        var monthChars = Array(repeating: Character(" "), count: gridWidth)
         var lastMonth = -1
-        for week in heatmap.weeks {
+        for (i, week) in heatmap.weeks.enumerated() {
             let month = Calendar.current.component(.month, from: week.weekStartDate)
             if month != lastMonth {
-                let name = Calendar.current.monthAbbreviation(for:week.weekStartDate)
-                monthRow += name + pad(max(0, 3 - name.count))
+                let name = Calendar.current.monthAbbreviation(for: week.weekStartDate)
+                let pos = labelWidth + i * 2
+                for (j, char) in name.enumerated() where pos + j < gridWidth {
+                    monthChars[pos + j] = char
+                }
                 lastMonth = month
-            } else {
-                monthRow += pad(3)
             }
         }
+        let monthRow = String(monthChars)
 
         // Divider
-        let dividerWidth = 4 + heatmap.weeks.count * 3
+        let dividerWidth = labelWidth + heatmap.weeks.count * 2 - 1
         let dividerRow = String(repeating: sngH, count: dividerWidth)
-
-        // Week-start date headers
-        var dateRow = pad(4)
-        for week in heatmap.weeks {
-            let day = Calendar.current.component(.day, from:week.weekStartDate)
-            dateRow += leftPad(String(day), 2) + " "
-        }
 
         // Day rows (7 days, Mon-Sun)
         var dayRows: [String] = []
         for dayIndex in 0..<7 {
-            var row = dayLabels[dayIndex] + pad(3)
-            for week in heatmap.weeks {
+            var row = dayLabels[dayIndex] + pad(labelWidth - 1)
+            for (i, week) in heatmap.weeks.enumerated() {
                 let activity = week.days[dayIndex]
                 row += intensityChar(duration: activity.duration, max: maxDuration, isFuture: activity.isFuture)
-                row += pad(2)
+                if i < heatmap.weeks.count - 1 {
+                    row += pad(1)
+                }
             }
             dayRows.append(row)
         }
 
-        return [monthRow, dividerRow, dateRow] + dayRows
+        return [monthRow, dividerRow] + dayRows
     }
 
     private static func intensityChar(duration: TimeInterval, max: TimeInterval, isFuture: Bool) -> String {
@@ -325,24 +262,41 @@ enum DashboardRenderer {
 
         let values = sparkline.values.map(\.value)
         let maxVal = values.max() ?? 0
+        let charsPerWeek = max(1, fullContentWidth / values.count)
+        let extraChars = fullContentWidth - charsPerWeek * values.count
 
         var sparkStr = ""
-        for value in values {
+        for (i, value) in values.enumerated() {
+            let char: Character
             if maxVal == 0 || value == 0 {
-                sparkStr.append(sparkChars[0])
+                char = sparkChars[0]
             } else {
                 let index = min(
                     Int((value / maxVal) * Double(sparkChars.count - 1)),
                     sparkChars.count - 1
                 )
-                sparkStr.append(sparkChars[index])
+                char = sparkChars[index]
             }
+            let width = charsPerWeek + (i < extraChars ? 1 : 0)
+            sparkStr += String(repeating: char, count: width)
         }
 
-        let startLabel = sparkline.values.first!.weekStartDate.formatted(DateTimeFormat.shortDate)
-        let endLabel = sparkline.values.last!.weekStartDate.formatted(DateTimeFormat.shortDate)
-        let labelGap = max(1, sparkline.values.count - startLabel.count - endLabel.count)
-        let labelRow = startLabel + pad(labelGap) + endLabel
+        // Month labels placed at the position where each month starts
+        var labelChars = Array(repeating: Character(" "), count: fullContentWidth)
+        var lastMonth = -1
+        var pos = 0
+        for (i, point) in sparkline.values.enumerated() {
+            let month = Calendar.current.component(.month, from: point.weekStartDate)
+            if month != lastMonth {
+                let name = Calendar.current.monthAbbreviation(for: point.weekStartDate)
+                for (j, char) in name.enumerated() where pos + j < fullContentWidth {
+                    labelChars[pos + j] = char
+                }
+                lastMonth = month
+            }
+            pos += charsPerWeek + (i < extraChars ? 1 : 0)
+        }
+        let labelRow = String(labelChars)
 
         return [sparkStr, labelRow]
     }
@@ -356,12 +310,12 @@ enum DashboardRenderer {
         // Remaining: name + " " + bar
         let fixedWidth = 13
         let flexWidth = width - fixedWidth
-        // Split flex between name and bar: give bar at least 6, rest to name
-        let barWidth = max(6, flexWidth / 3)
+        // Give name what it needs, capped at half of flex space
         let nameWidth = min(
             entries.map(\.projectName.count).max() ?? 0,
-            flexWidth - barWidth - 1 // -1 for space between name and bar
+            flexWidth / 2
         )
+        let barWidth = flexWidth - nameWidth - 1 // -1 for space between name and bar
 
         var lines: [String] = []
         for entry in entries {
@@ -432,41 +386,40 @@ enum DashboardRenderer {
     // MARK: - Stats Content
 
     private static func renderStatsContent(_ stats: DashboardStats) -> [String] {
-        let labelWidth = 20
-        var lines: [String] = []
+        // Two columns separated by a gap
+        let colWidth = (fullContentWidth - 4) / 2 // 4 chars gap between columns
+        let labelWidth = colWidth - 10 // 10 chars for value
+        let gap = fullContentWidth - colWidth * 2
 
+        func statLine(_ label: String, _ value: String) -> String {
+            rightPad(label, labelWidth) + leftPad(value, 10)
+        }
+
+        // Left column
         let streakUnit = stats.currentStreak == 1 ? "day" : "days"
-        lines.append(
-            rightPad("Current streak", labelWidth) + leftPad("\(stats.currentStreak) \(streakUnit)", 10)
-        )
-
         let longestUnit = stats.longestStreak == 1 ? "day" : "days"
-        lines.append(
-            rightPad("Longest streak", labelWidth) + leftPad("\(stats.longestStreak) \(longestUnit)", 10)
-        )
 
-        lines.append(
-            rightPad("Avg session", labelWidth)
-            + leftPad(DurationFormat.formatted(stats.averageSessionDuration), 10)
-        )
+        let left: [String] = [
+            statLine("Current streak", "\(stats.currentStreak) \(streakUnit)"),
+            statLine("Longest streak", "\(stats.longestStreak) \(longestUnit)"),
+            statLine("Sessions (week)", "\(stats.sessionsThisWeek)"),
+            statLine("Longest session", stats.longestSession.map { DurationFormat.formatted($0.duration) } ?? "-"),
+            statLine("Most active day", stats.mostActiveWeekday.map { Calendar.current.weekdayName($0) } ?? "-"),
+        ]
 
-        if let longest = stats.longestSession {
-            let dateStr = longest.date.formatted(DateTimeFormat.dateWithDay)
-            lines.append(
-                rightPad("Longest session", labelWidth)
-                + leftPad(DurationFormat.formatted(longest.duration), 10)
-                + "  (\(longest.projectName), \(dateStr))"
-            )
+        // Right column
+        let right: [String] = [
+            statLine("Daily avg (week)", DurationFormat.formatted(stats.dailyAvgWeek)),
+            statLine("Avg session", DurationFormat.formatted(stats.averageSessionDuration)),
+            statLine("Total hours", DurationFormat.formatted(stats.totalHours, hoursOnly: true)),
+            statLine("Best day (week)", stats.bestDayThisWeek.map { Calendar.current.weekdayName($0) } ?? "-"),
+            statLine("Top project", stats.topProject ?? "-"),
+        ]
+
+        // Combine into rows
+        return zip(left, right).map { l, r in
+            rightPad(l, colWidth) + pad(gap) + r
         }
-
-        if let weekday = stats.mostActiveWeekday {
-            lines.append(
-                rightPad("Most active day", labelWidth)
-                + leftPad(Calendar.current.weekdayName(weekday), 10)
-            )
-        }
-
-        return lines
     }
 
     // MARK: - String Utilities

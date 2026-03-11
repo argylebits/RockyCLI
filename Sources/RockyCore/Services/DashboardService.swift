@@ -19,7 +19,7 @@ public struct DashboardService: Sendable {
         let thisMonthStart = startOfMonth(for: now, calendar: calendar)
         let lastMonthStart = calendar.date(byAdding: .month, value: -1, to: thisMonthStart)!
         let thisYearStart = startOfYear(for: now, calendar: calendar)
-        let heatmapStart = calendar.date(byAdding: .weekOfYear, value: -11, to: thisWeekStart)!
+        let heatmapStart = calendar.date(byAdding: .weekOfYear, value: -30, to: thisWeekStart)!
 
         // Fetch sessions for recent range (covers summaries, heatmap, sparkline, peak hours, distribution)
         let earliestNeeded = [heatmapStart, thisYearStart, lastMonthStart, lastWeekStart].min()!
@@ -63,7 +63,13 @@ public struct DashboardService: Sendable {
             from: heatmapStart, to: now
         )
 
-        let stats = computeStats(sessions: allSessions, now: now, calendar: calendar)
+        let weekSessions = recentSessions.filter { session, _ in
+            session.startTime >= thisWeekStart || (session.endTime ?? now) > thisWeekStart
+        }
+        let stats = computeStats(
+            sessions: allSessions, weekSessions: weekSessions,
+            now: now, calendar: calendar, thisWeekStart: thisWeekStart
+        )
 
         return DashboardData(
             runningTimers: runningTimers,
@@ -269,8 +275,10 @@ public struct DashboardService: Sendable {
 
     private func computeStats(
         sessions: [(Session, Project)],
+        weekSessions: [(Session, Project)],
         now: Date,
-        calendar: Calendar
+        calendar: Calendar,
+        thisWeekStart: Date
     ) -> DashboardStats {
         guard !sessions.isEmpty else {
             return DashboardStats(
@@ -278,7 +286,12 @@ public struct DashboardService: Sendable {
                 longestStreak: 0,
                 averageSessionDuration: 0,
                 longestSession: nil,
-                mostActiveWeekday: nil
+                mostActiveWeekday: nil,
+                dailyAvgWeek: 0,
+                sessionsThisWeek: 0,
+                totalHours: 0,
+                topProject: nil,
+                bestDayThisWeek: nil
             )
         }
 
@@ -372,12 +385,54 @@ public struct DashboardService: Sendable {
 
         let mostActiveWeekday = weekdayDurations.max(by: { $0.value < $1.value })?.key
 
+        // Weekly stats
+        let weekSessionCount = weekSessions.count
+        let weekTotal = weekSessions.reduce(0.0) { sum, pair in
+            let (session, _) = pair
+            let sessionEnd = session.endTime ?? now
+            let overlapStart = max(session.startTime, thisWeekStart)
+            let overlapEnd = min(sessionEnd, now)
+            return overlapEnd > overlapStart ? sum + overlapEnd.timeIntervalSince(overlapStart) : sum
+        }
+        let daysIntoWeek = max(1, calendar.dateComponents([.day], from: thisWeekStart, to: now).day ?? 1)
+        let dailyAvgWeek = weekTotal / Double(daysIntoWeek)
+
+        // Top project (all time by total duration)
+        var projectTotals: [String: TimeInterval] = [:]
+        for (session, project) in sessions {
+            projectTotals[project.name, default: 0] += session.duration(at: now)
+        }
+        let topProject = projectTotals.max(by: { $0.value < $1.value })?.key
+
+        // Best day this week (weekday with most hours)
+        var weekdayDurationsThisWeek: [Int: TimeInterval] = [:]
+        for (session, _) in weekSessions {
+            let sessionEnd = session.endTime ?? now
+            var dayStart = max(calendar.startOfDay(for: session.startTime), thisWeekStart)
+            while dayStart < sessionEnd && dayStart < now {
+                let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart)!
+                let overlapStart = max(session.startTime, dayStart)
+                let overlapEnd = min(sessionEnd, dayEnd)
+                if overlapEnd > overlapStart {
+                    let wd = calendar.component(.weekday, from: dayStart)
+                    weekdayDurationsThisWeek[wd, default: 0] += overlapEnd.timeIntervalSince(overlapStart)
+                }
+                dayStart = dayEnd
+            }
+        }
+        let bestDayThisWeek = weekdayDurationsThisWeek.max(by: { $0.value < $1.value })?.key
+
         return DashboardStats(
             currentStreak: currentStreak,
             longestStreak: longestStreak,
             averageSessionDuration: averageDuration,
             longestSession: longest,
-            mostActiveWeekday: mostActiveWeekday
+            mostActiveWeekday: mostActiveWeekday,
+            dailyAvgWeek: dailyAvgWeek,
+            sessionsThisWeek: weekSessionCount,
+            totalHours: totalDuration,
+            topProject: topProject,
+            bestDayThisWeek: bestDayThisWeek
         )
     }
 
@@ -461,6 +516,11 @@ public struct DashboardStats: Sendable {
     public let averageSessionDuration: TimeInterval
     public let longestSession: LongestSessionInfo?
     public let mostActiveWeekday: Int? // Calendar weekday: 1=Sun, 2=Mon, ..., 7=Sat
+    public let dailyAvgWeek: TimeInterval
+    public let sessionsThisWeek: Int
+    public let totalHours: TimeInterval
+    public let topProject: String?
+    public let bestDayThisWeek: Int? // Calendar weekday
 }
 
 public struct LongestSessionInfo: Sendable {
