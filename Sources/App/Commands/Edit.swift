@@ -76,7 +76,7 @@ struct Edit: AsyncParsableCommand {
         print(Table.renderVerbose(verboseRows, period: period, projectFilter: proj.name))
         print()
 
-        let sessionId = promptForSessionId(sessions: sessions.map(\.0))
+        let sessionId = try promptForSessionId(sessions: sessions.map(\.0))
 
         guard let existing = try await ctx.sessionService.getById(sessionId) else {
             throw ValidationError("No session found with ID \(sessionId).")
@@ -94,32 +94,34 @@ struct Edit: AsyncParsableCommand {
         print("  3. Duration (\(durStr))")
         print()
 
-        let field = promptForField(isRunning: existing.isRunning)
+        let field = try promptForField(isRunning: existing.isRunning)
 
         switch field {
         case .start:
-            let newStart = promptForDatetime("New value (YYYY-MM-DD HH:MM): ")
+            let newStart = try promptForDatetime("New value (YYYY-MM-DD HH:MM): ")
             let updated = try await ctx.sessionService.editSession(id: sessionId, newStart: newStart, newStop: nil, newDuration: nil)
             printSessionSummary(updated)
         case .stop:
-            let newStop = promptForDatetime("New value (YYYY-MM-DD HH:MM): ")
+            let newStop = try promptForDatetime("New value (YYYY-MM-DD HH:MM): ")
             let updated = try await ctx.sessionService.editSession(id: sessionId, newStart: nil, newStop: newStop, newDuration: nil)
             printSessionSummary(updated)
         case .duration:
-            let newDuration = promptForDuration()
+            let newDuration = try promptForDuration()
             let updated = try await ctx.sessionService.editSession(id: sessionId, newStart: nil, newStop: nil, newDuration: newDuration)
-            printSessionSummary(updated)
         }
     }
 
     // MARK: - Prompts
 
-    private func promptForSessionId(sessions: [Session]) -> Int {
+    private func promptForSessionId(sessions: [Session]) throws -> Int {
         let validIds = Set(sessions.map(\.id))
         while true {
             print("Edit which? ", terminator: "")
-            guard let input = readLine()?.trimmingCharacters(in: .whitespaces),
-                  let id = Int(input) else {
+            guard let line = readLine() else {
+                throw ValidationError("Input cancelled.")
+            }
+            let input = line.trimmingCharacters(in: .whitespaces)
+            guard let id = Int(input) else {
                 print("Invalid input. Enter a session ID.")
                 continue
             }
@@ -132,10 +134,13 @@ struct Edit: AsyncParsableCommand {
 
     private enum Field { case start, stop, duration }
 
-    private func promptForField(isRunning: Bool) -> Field {
+    private func promptForField(isRunning: Bool) throws -> Field {
         while true {
             print("Edit which field? (1/2/3): ", terminator: "")
-            guard let input = readLine()?.trimmingCharacters(in: .whitespaces) else { continue }
+            guard let line = readLine() else {
+                throw ValidationError("Input cancelled.")
+            }
+            let input = line.trimmingCharacters(in: .whitespaces)
 
             switch input {
             case "1": return .start
@@ -157,10 +162,13 @@ struct Edit: AsyncParsableCommand {
         }
     }
 
-    private func promptForDatetime(_ prompt: String) -> Date {
+    private func promptForDatetime(_ prompt: String) throws -> Date {
         while true {
             print(prompt, terminator: "")
-            guard let input = readLine()?.trimmingCharacters(in: .whitespaces) else { continue }
+            guard let line = readLine() else {
+                throw ValidationError("Input cancelled.")
+            }
+            let input = line.trimmingCharacters(in: .whitespaces)
             do {
                 return try DateTimeFormat.parse(input)
             } catch {
@@ -169,12 +177,14 @@ struct Edit: AsyncParsableCommand {
         }
     }
 
-    private func promptForDuration() -> Double {
+    private func promptForDuration() throws -> Double {
         while true {
             print("New value (seconds): ", terminator: "")
-            guard let input = readLine()?.trimmingCharacters(in: .whitespaces),
-                  let seconds = Double(input),
-                  seconds > 0 else {
+            guard let line = readLine() else {
+                throw ValidationError("Input cancelled.")
+            }
+            let input = line.trimmingCharacters(in: .whitespaces)
+            guard let seconds = Double(input), seconds > 0 else {
                 print("Invalid duration. Enter a positive number of seconds.")
                 continue
             }

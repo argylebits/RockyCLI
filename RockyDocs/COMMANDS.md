@@ -171,7 +171,7 @@ Edit which? 41
   3. Duration (10h 54m)
 
 Edit which field? 3
-New value (Xh Ym): 2h 10m
+New value (seconds): 7800
 
 Updated: Mon 09 Mar  23:20 — 01:30  (2h 10m)
 ```
@@ -182,9 +182,9 @@ Updated: Mon 09 Mar  23:20 — 01:30  (2h 10m)
 rocky edit --session 41 --start "2026-03-09 23:00" --stop "2026-03-10 01:30"
 rocky edit --session 41 --start "2026-03-09 23:00"
 rocky edit --session 41 --stop "2026-03-10 01:30"
-rocky edit --session 41 --duration "2h 10m"
-rocky edit --session 41 --start "2026-03-09 23:00" --duration "2h 10m"
-rocky edit --session 41 --stop "2026-03-10 01:30" --duration "2h 10m"
+rocky edit --session 41 --duration 7800
+rocky edit --session 41 --start "2026-03-09 23:00" --duration 7800
+rocky edit --session 41 --stop "2026-03-10 01:30" --duration 7800
 ```
 
 ### Flags
@@ -194,7 +194,7 @@ rocky edit --session 41 --stop "2026-03-10 01:30" --duration "2h 10m"
 | `--session <id>` | Session ID (shown in `--verbose` output) |
 | `--start <datetime>` | New start time (`YYYY-MM-DD HH:MM`) |
 | `--stop <datetime>` | New stop time (`YYYY-MM-DD HH:MM`) |
-| `--duration <duration>` | Duration (`Xh Ym`) — used to compute start or stop |
+| `--duration <seconds>` | Duration in seconds — used to compute start or stop |
 
 ### Flag combinations
 
@@ -213,7 +213,7 @@ rocky edit --session 41 --stop "2026-03-10 01:30" --duration "2h 10m"
 - **Interactive mode** (`rocky edit <project>`): shows sessions for the project, prompts for session ID, field, and new value
 - **Non-interactive mode** (`rocky edit --session <id> --start/--stop/--duration`): no prompts, fails with error if required flags are missing
 - Datetime format is always `YYYY-MM-DD HH:MM` in local timezone — no ambiguity for multi-day sessions
-- Duration format is `Xh Ym` (e.g. `2h 10m`, `0h 45m`)
+- Duration input is in seconds (e.g. `7800` for 2h 10m). Output displays as `Xh Ym`.
 - **Validation:**
   - Computed or explicit stop time must be after start time
   - Cannot edit the stop time of a running session (stop it first)

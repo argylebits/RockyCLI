@@ -76,6 +76,10 @@ Verbose mode (`--verbose`) includes the database session ID in an `ID` column. T
 
 All date and time display output uses `Date.FormatStyle` and defers to the system locale. This means dates and times will render differently depending on the user's locale settings (e.g. `Mar 10` vs `10 Mar`, `5:05 PM` vs `17:05`). This is intentional — the CLI respects the user's preferences. OUTPUT.md examples are illustrative, not pixel-perfect specs.
 
+## Duration input as seconds
+
+The `--duration` flag and interactive duration prompt accept raw seconds (e.g. `7800` for 2h 10m). Swift's `Duration.UnitsFormatStyle` has no parse strategy, so there is no native API for parsing `Xh Ym` strings. Seconds avoids locale ambiguity and is unambiguous. Duration *output* still displays as `Xh Ym`.
+
 ## Color (deferred)
 
 Color coding based on project recency is designed but NOT implemented in v1. The decay concept: green for actively running, white for recently worked on, grey for older, dark grey for very old. Implement output in monochrome first, add color as a follow-up.

@@ -49,7 +49,10 @@ struct Stop: AsyncParsableCommand {
 
         while true {
             print("Stop which? (\(running.indices.map { "\($0 + 1)" }.joined(separator: "/"))/all): ", terminator: "")
-            guard let input = readLine()?.trimmingCharacters(in: .whitespaces) else { continue }
+            guard let line = readLine() else {
+                throw ValidationError("Input cancelled.")
+            }
+            let input = line.trimmingCharacters(in: .whitespaces)
 
             if input == "all" {
                 try await stopAll(ctx: ctx)
