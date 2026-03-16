@@ -25,11 +25,11 @@ public struct Project: Codable, Sendable {
 extension Project: FetchableRecord, PersistableRecord, TableRecord {
     public static let databaseTableName = "projects"
 
-    static func databaseDateDecodingStrategy(for column: String) -> DatabaseDateDecodingStrategy {
+    public static func databaseDateDecodingStrategy(for column: String) -> DatabaseDateDecodingStrategy {
         .iso8601
     }
 
-    static func databaseDateEncodingStrategy(for column: String) -> DatabaseDateEncodingStrategy {
+    public static func databaseDateEncodingStrategy(for column: String) -> DatabaseDateEncodingStrategy {
         .iso8601
     }
 }
