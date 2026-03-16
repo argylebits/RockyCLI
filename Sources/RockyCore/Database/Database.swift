@@ -8,7 +8,7 @@ public final class Database: Sendable {
         self.dbQueue = dbQueue
     }
 
-    public static func open() throws -> Database {
+    public static func open(trace: (@Sendable (String) -> Void)? = nil) throws -> Database {
         let dbDir = FileManager.default
             .homeDirectoryForCurrentUser
             .appendingPathComponent(".rocky")
@@ -18,14 +18,26 @@ public final class Database: Sendable {
         }
 
         let dbPath = dbDir.appendingPathComponent("rocky.db").path
-        let database = Database(dbQueue: try DatabaseQueue(path: dbPath))
+        let database = Database(dbQueue: try DatabaseQueue(path: dbPath, configuration: makeConfig(trace: trace)))
         try Migrations.run(on: database)
         return database
     }
 
-    public static func inMemory() throws -> Database {
-        let database = Database(dbQueue: try DatabaseQueue())
+    public static func inMemory(trace: (@Sendable (String) -> Void)? = nil) throws -> Database {
+        let database = Database(dbQueue: try DatabaseQueue(configuration: makeConfig(trace: trace)))
         try Migrations.run(on: database)
         return database
+    }
+
+    private static func makeConfig(trace: (@Sendable (String) -> Void)?) -> Configuration {
+        var config = Configuration()
+        if let trace {
+            config.prepareDatabase { db in
+                db.trace { event in
+                    trace(String(describing: event))
+                }
+            }
+        }
+        return config
     }
 }
