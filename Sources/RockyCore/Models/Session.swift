@@ -1,4 +1,5 @@
 import Foundation
+import GRDB
 
 public struct Session: Codable, Sendable {
     public let id: Int
@@ -25,5 +26,17 @@ public struct Session: Codable, Sendable {
     public func duration(at now: Date = Date()) -> TimeInterval {
         let end = endTime ?? now
         return end.timeIntervalSince(startTime)
+    }
+}
+
+extension Session: FetchableRecord, PersistableRecord, TableRecord {
+    public static let databaseTableName = "sessions"
+
+    static func databaseDateDecodingStrategy(for column: String) -> DatabaseDateDecodingStrategy {
+        .iso8601
+    }
+
+    static func databaseDateEncodingStrategy(for column: String) -> DatabaseDateEncodingStrategy {
+        .iso8601
     }
 }
