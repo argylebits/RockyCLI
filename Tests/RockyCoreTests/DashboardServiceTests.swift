@@ -184,15 +184,21 @@ struct DashboardServiceTests {
         let (projectRepo, sessionRepo, service) = makeServices()
         let project = try await projectRepo.findOrCreate(name: "test")
 
-        // One completed session + one running
+        let now = Date()
+
+        // One completed session earlier today
         try await sessionRepo.insert(
             projectId: project.id,
-            startTime: date(day: 9, hour: 10),
-            endTime: date(day: 9, hour: 12)
+            startTime: now.addingTimeInterval(-7200),
+            endTime: now.addingTimeInterval(-3600)
         )
-        try await sessionRepo.start(projectId: project.id)
+        // One running session (nil end_time) started an hour ago
+        try await sessionRepo.insert(
+            projectId: project.id,
+            startTime: now.addingTimeInterval(-3600),
+            endTime: nil
+        )
 
-        let now = date(day: 11, hour: 12)
         let data = try await service.generate(now: now)
 
         #expect(data.stats.sessionsThisWeek == 2)
