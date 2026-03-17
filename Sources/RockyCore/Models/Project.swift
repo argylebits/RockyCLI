@@ -22,15 +22,20 @@ public struct Project: Codable, Sendable {
     }
 }
 
-extension Project: FetchableRecord, PersistableRecord, TableRecord {
+extension Project: FetchableRecord, TableRecord {
     public static let databaseTableName = "projects"
 
-    static func databaseDateDecodingStrategy(for column: String) -> DatabaseDateDecodingStrategy {
-        .iso8601
-    }
-
-    static func databaseDateEncodingStrategy(for column: String) -> DatabaseDateEncodingStrategy {
-        .iso8601
+    public init(row: Row) throws {
+        let createdAtString: String = row["created_at"]
+        guard let createdAt = Date.fromISO8601(createdAtString) else {
+            throw RockyCoreError.invalidRow("projects")
+        }
+        self.init(
+            id: row["id"],
+            parentId: row["parent_id"],
+            name: row["name"],
+            createdAt: createdAt
+        )
     }
 }
 
