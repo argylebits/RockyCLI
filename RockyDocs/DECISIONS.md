@@ -20,9 +20,17 @@ There is no explicit active/inactive flag on projects. Recency is derived from t
 
 `projects.parent_id` is in the schema to support future subprojects, but no CLI commands for managing the hierarchy in v1. Sessions always attach to leaf projects.
 
-## sqlite-nio over GRDB or Fluent
+## GRDB over sqlite-nio or Fluent
 
-The developer has prior experience with postgres-nio (same Vapor family). Raw SQL is preferred over ORM. sqlite-nio allows raw SQL with async/await patterns consistent with postgres-nio experience.
+GRDB provides connection management (DatabaseQueue), Codable row mapping (FetchableRecord), and migration tracking (DatabaseMigrator) — without ORM overhead. Chosen over sqlite-nio because NIO's async server infrastructure adds unnecessary complexity for a CLI tool. All queries use raw SQL through GRDB for readability and debuggability. All timestamps use Swift `Date()` formatted explicitly via `iso8601String` helper.
+
+## Raw SQL through GRDB, not query interface
+
+All database queries use raw SQL executed through GRDB (`db.execute(sql:)`, `Model.fetchOne(db, sql:)`, etc.). GRDB's query interface (`.filter()`, `.order()`) is not used. Raw SQL is more readable, easier to debug, and matches how answers are found when things go wrong.
+
+## Explicit ISO8601 date formatting
+
+All date encoding and decoding is handled explicitly via `Date+ISO8601.swift` helpers (`iso8601String` for writing, `fromISO8601` for reading). GRDB's built-in date strategies are not used. One mechanism for dates, no hidden behavior.
 
 ## `--verbose` flag for session drill-down
 
