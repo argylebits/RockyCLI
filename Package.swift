@@ -35,12 +35,6 @@ let package = Package(
             name: "AppTests",
             dependencies: ["App"]
         ),
-        .testTarget(
-            name: "GRDBVerificationTests",
-            dependencies: [
-                .product(name: "GRDB", package: "GRDB.swift"),
-            ]
-        ),
         .executableTarget(
             name: "VersionGen"
         ),
