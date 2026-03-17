@@ -15,7 +15,7 @@ public struct SQLiteProjectRepository: ProjectRepository, Sendable {
         return try await db.dbQueue.write { db in
             try db.execute(
                 sql: "INSERT INTO projects (name, created_at) VALUES (?, ?)",
-                arguments: [name, Date()])
+                arguments: [name, Date().iso8601String])
             let id = db.lastInsertedRowID
             return try Project.fetchOne(db,
                 sql: "SELECT * FROM projects WHERE id = ?",
