@@ -1,7 +1,7 @@
 import ArgumentParser
 
 @main
-struct Rocky: AsyncParsableCommand {
+struct Rocky: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "rocky",
         abstract: "A CLI time tracking tool.",

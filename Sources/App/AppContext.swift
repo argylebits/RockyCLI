@@ -12,7 +12,7 @@ struct AppContext {
         self.dashboardService = dashboardService
     }
 
-    static func build() async throws -> AppContext {
+    static func build() throws -> AppContext {
         let db = try Database.open()
         let projectRepo = SQLiteProjectRepository(db: db)
         let sessionRepo = SQLiteSessionRepository(db: db)

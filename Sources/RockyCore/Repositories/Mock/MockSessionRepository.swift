@@ -9,17 +9,17 @@ public final class MockSessionRepository: SessionRepository, @unchecked Sendable
         self.projectRepository = projectRepository
     }
 
-    public func start(projectId: Int) async throws {
+    public func start(projectId: Int) throws {
         let session = Session(id: nextId, projectId: projectId, startTime: Date(), endTime: nil)
         nextId += 1
         sessions.append(session)
     }
 
-    public func hasRunningSession(projectId: Int) async throws -> Bool {
+    public func hasRunningSession(projectId: Int) throws -> Bool {
         sessions.contains { $0.projectId == projectId && $0.isRunning }
     }
 
-    public func stop(projectId: Int) async throws -> Session {
+    public func stop(projectId: Int) throws -> Session {
         guard let index = sessions.firstIndex(where: { $0.projectId == projectId && $0.isRunning }) else {
             throw RockyCoreError.noRunningTimers
         }
@@ -33,7 +33,7 @@ public final class MockSessionRepository: SessionRepository, @unchecked Sendable
         return stopped
     }
 
-    public func stopAll() async throws -> [Session] {
+    public func stopAll() throws -> [Session] {
         var stopped: [Session] = []
         for (index, session) in sessions.enumerated() where session.isRunning {
             let s = Session(
@@ -48,31 +48,31 @@ public final class MockSessionRepository: SessionRepository, @unchecked Sendable
         return stopped
     }
 
-    public func getRunning() async throws -> [Session] {
+    public func getRunning() throws -> [Session] {
         sessions.filter { $0.isRunning }.sorted { $0.startTime < $1.startTime }
     }
 
-    public func getRunningWithProjects() async throws -> [(Session, Project)] {
+    public func getRunningWithProjects() throws -> [(Session, Project)] {
         var results: [(Session, Project)] = []
         for session in sessions where session.isRunning {
-            if let project = try await projectRepository.getById(session.projectId) {
+            if let project = try projectRepository.getById(session.projectId) {
                 results.append((session, project))
             }
         }
         return results.sorted { $0.0.startTime < $1.0.startTime }
     }
 
-    public func insert(projectId: Int, startTime: Date, endTime: Date?) async throws {
+    public func insert(projectId: Int, startTime: Date, endTime: Date?) throws {
         let session = Session(id: nextId, projectId: projectId, startTime: startTime, endTime: endTime)
         nextId += 1
         sessions.append(session)
     }
 
-    public func getById(_ id: Int) async throws -> Session? {
+    public func getById(_ id: Int) throws -> Session? {
         sessions.first { $0.id == id }
     }
 
-    public func update(id: Int, startTime: Date, endTime: Date?) async throws -> Session {
+    public func update(id: Int, startTime: Date, endTime: Date?) throws -> Session {
         guard let index = sessions.firstIndex(where: { $0.id == id }) else {
             throw RockyCoreError.sessionNotFound(id)
         }
@@ -81,7 +81,7 @@ public final class MockSessionRepository: SessionRepository, @unchecked Sendable
         return updated
     }
 
-    public func getSessions(from: Date, to: Date, projectId: Int? = nil) async throws -> [(Session, Project)] {
+    public func getSessions(from: Date, to: Date, projectId: Int? = nil) throws -> [(Session, Project)] {
         var results: [(Session, Project)] = []
         for session in sessions {
             if let projectId, session.projectId != projectId { continue }
@@ -89,7 +89,7 @@ public final class MockSessionRepository: SessionRepository, @unchecked Sendable
             let endTime = session.endTime ?? Date()
             let overlaps = session.startTime < to && endTime > from
             if overlaps {
-                if let project = try await projectRepository.getById(session.projectId) {
+                if let project = try projectRepository.getById(session.projectId) {
                     results.append((session, project))
                 }
             }

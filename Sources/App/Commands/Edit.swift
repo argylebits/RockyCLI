@@ -2,7 +2,7 @@ import ArgumentParser
 import Foundation
 import RockyCore
 
-struct Edit: AsyncParsableCommand {
+struct Edit: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Edit the start, stop, or duration of a session."
     )
@@ -22,13 +22,13 @@ struct Edit: AsyncParsableCommand {
     @Option(name: .long, help: "Duration in seconds.")
     var duration: Double?
 
-    func run() async throws {
-        let ctx = try await AppContext.build()
+    func run() throws {
+        let ctx = try AppContext.build()
 
         if let sessionId = session {
-            try await nonInteractive(sessionId: sessionId, ctx: ctx)
+            try nonInteractive(sessionId: sessionId, ctx: ctx)
         } else if let projectName = project {
-            try await interactive(projectName: projectName, ctx: ctx)
+            try interactive(projectName: projectName, ctx: ctx)
         } else {
             throw ValidationError("Provide a project name for interactive mode or --session for non-interactive mode.")
         }
@@ -36,11 +36,11 @@ struct Edit: AsyncParsableCommand {
 
     // MARK: - Non-interactive
 
-    private func nonInteractive(sessionId: Int, ctx: AppContext) async throws {
+    private func nonInteractive(sessionId: Int, ctx: AppContext) throws {
         let newStart = try start.map { try DateTimeFormat.parse($0) }
         let newStop = try stop.map { try DateTimeFormat.parse($0) }
 
-        let updated = try await ctx.sessionService.editSession(
+        let updated = try ctx.sessionService.editSession(
             id: sessionId,
             newStart: newStart,
             newStop: newStop,
@@ -52,15 +52,15 @@ struct Edit: AsyncParsableCommand {
 
     // MARK: - Interactive
 
-    private func interactive(projectName: String, ctx: AppContext) async throws {
-        guard let proj = try await ctx.projectService.getByName(projectName) else {
+    private func interactive(projectName: String, ctx: AppContext) throws {
+        guard let proj = try ctx.projectService.getByName(projectName) else {
             throw ValidationError("No project found with name \"\(projectName)\".")
         }
 
         let calendar = Calendar.current
         let to = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: Date()))!
         let from = calendar.date(byAdding: .day, value: -90, to: to)!
-        let sessions = try await ctx.sessionService.getSessions(from: from, to: to, projectId: proj.id)
+        let sessions = try ctx.sessionService.getSessions(from: from, to: to, projectId: proj.id)
 
         if sessions.isEmpty {
             output("No sessions found for \(proj.name).")
@@ -77,7 +77,7 @@ struct Edit: AsyncParsableCommand {
 
         let sessionId = try promptForSessionId(sessions: sessions.map(\.0))
 
-        guard let existing = try await ctx.sessionService.getById(sessionId) else {
+        guard let existing = try ctx.sessionService.getById(sessionId) else {
             throw ValidationError("No session found with ID \(sessionId).")
         }
 
@@ -98,15 +98,15 @@ struct Edit: AsyncParsableCommand {
         switch field {
         case .start:
             let newStart = try promptForDatetime("New value (YYYY-MM-DD HH:MM): ")
-            let updated = try await ctx.sessionService.editSession(id: sessionId, newStart: newStart, newStop: nil, newDuration: nil)
+            let updated = try ctx.sessionService.editSession(id: sessionId, newStart: newStart, newStop: nil, newDuration: nil)
             printSessionSummary(updated)
         case .stop:
             let newStop = try promptForDatetime("New value (YYYY-MM-DD HH:MM): ")
-            let updated = try await ctx.sessionService.editSession(id: sessionId, newStart: nil, newStop: newStop, newDuration: nil)
+            let updated = try ctx.sessionService.editSession(id: sessionId, newStart: nil, newStop: newStop, newDuration: nil)
             printSessionSummary(updated)
         case .duration:
             let newDuration = try promptForDuration()
-            let updated = try await ctx.sessionService.editSession(id: sessionId, newStart: nil, newStop: nil, newDuration: newDuration)
+            let updated = try ctx.sessionService.editSession(id: sessionId, newStart: nil, newStop: nil, newDuration: newDuration)
         }
     }
 

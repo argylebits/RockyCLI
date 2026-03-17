@@ -9,7 +9,7 @@ public struct DashboardService: Sendable {
         self.projectRepository = projectRepository
     }
 
-    public func generate(now: Date = Date()) async throws -> DashboardData {
+    public func generate(now: Date = Date()) throws -> DashboardData {
         var calendar = Calendar.current
         calendar.firstWeekday = 2 // Monday (per DECISIONS.md)
 
@@ -23,15 +23,15 @@ public struct DashboardService: Sendable {
 
         // Fetch sessions for recent range (covers summaries, heatmap, sparkline, peak hours, distribution)
         let earliestNeeded = [heatmapStart, thisYearStart, lastMonthStart, lastWeekStart].min()!
-        let recentSessions = try await sessionRepository.getSessions(from: earliestNeeded, to: now, projectId: nil)
+        let recentSessions = try sessionRepository.getSessions(from: earliestNeeded, to: now, projectId: nil)
 
         // Fetch full history for streaks and all-time stats
-        let allSessions = try await sessionRepository.getSessions(
+        let allSessions = try sessionRepository.getSessions(
             from: Date(timeIntervalSince1970: 0), to: now, projectId: nil
         )
 
         // Running timers
-        let runningPairs = try await sessionRepository.getRunningWithProjects()
+        let runningPairs = try sessionRepository.getRunningWithProjects()
         let runningTimers = runningPairs.map { session, project in
             RunningTimer(projectName: project.name, duration: session.duration(at: now))
         }
