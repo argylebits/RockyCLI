@@ -11,9 +11,9 @@ public struct ReportService: Sendable {
 
     // MARK: - Status (no flags)
 
-    public func allProjectsWithStatus() async throws -> [ProjectStatus] {
-        let projects = try await projectRepository.list()
-        let runningSessions = try await sessionRepository.getRunningWithProjects()
+    public func allProjectsWithStatus() throws -> [ProjectStatus] {
+        let projects = try projectRepository.list()
+        let runningSessions = try sessionRepository.getRunningWithProjects()
 
         let runningByProjectId = Dictionary(
             runningSessions.map { ($0.0.projectId, $0.0) },
@@ -36,8 +36,8 @@ public struct ReportService: Sendable {
 
     // MARK: - Time range reports
 
-    public func totals(from: Date, to: Date, projectId: Int? = nil) async throws -> ProjectTotals {
-        let sessions = try await sessionRepository.getSessions(from: from, to: to, projectId: projectId)
+    public func totals(from: Date, to: Date, projectId: Int? = nil) throws -> ProjectTotals {
+        let sessions = try sessionRepository.getSessions(from: from, to: to, projectId: projectId)
         let now = Date()
 
         var projectDurations: [String: TimeInterval] = [:]
@@ -68,24 +68,24 @@ public struct ReportService: Sendable {
         return ProjectTotals(entries: entries)
     }
 
-    public func groupedByDay(from: Date, to: Date, projectId: Int? = nil) async throws -> GroupedReport {
-        try await grouped(from: from, to: to, projectId: projectId, grouping: .day)
+    public func groupedByDay(from: Date, to: Date, projectId: Int? = nil) throws -> GroupedReport {
+        try grouped(from: from, to: to, projectId: projectId, grouping: .day)
     }
 
-    public func groupedByWeek(from: Date, to: Date, projectId: Int? = nil) async throws -> GroupedReport {
-        try await grouped(from: from, to: to, projectId: projectId, grouping: .week)
+    public func groupedByWeek(from: Date, to: Date, projectId: Int? = nil) throws -> GroupedReport {
+        try grouped(from: from, to: to, projectId: projectId, grouping: .week)
     }
 
-    public func groupedByWeekOfMonth(from: Date, to: Date, projectId: Int? = nil) async throws -> GroupedReport {
-        try await grouped(from: from, to: to, projectId: projectId, grouping: .weekOfMonth)
+    public func groupedByWeekOfMonth(from: Date, to: Date, projectId: Int? = nil) throws -> GroupedReport {
+        try grouped(from: from, to: to, projectId: projectId, grouping: .weekOfMonth)
     }
 
-    public func groupedByMonth(from: Date, to: Date, projectId: Int? = nil) async throws -> GroupedReport {
-        try await grouped(from: from, to: to, projectId: projectId, grouping: .month)
+    public func groupedByMonth(from: Date, to: Date, projectId: Int? = nil) throws -> GroupedReport {
+        try grouped(from: from, to: to, projectId: projectId, grouping: .month)
     }
 
-    private func grouped(from: Date, to: Date, projectId: Int? = nil, grouping: Grouping) async throws -> GroupedReport {
-        let sessions = try await sessionRepository.getSessions(from: from, to: to, projectId: projectId)
+    private func grouped(from: Date, to: Date, projectId: Int? = nil, grouping: Grouping) throws -> GroupedReport {
+        let sessions = try sessionRepository.getSessions(from: from, to: to, projectId: projectId)
         let now = Date()
         let calendar = Calendar.current
 
@@ -130,8 +130,8 @@ public struct ReportService: Sendable {
         return GroupedReport(columns: columns.map(\.label), rows: rows)
     }
 
-    public func verboseSessions(from: Date, to: Date, projectId: Int? = nil) async throws -> [VerboseSessionRow] {
-        let sessions = try await sessionRepository.getSessions(from: from, to: to, projectId: projectId)
+    public func verboseSessions(from: Date, to: Date, projectId: Int? = nil) throws -> [VerboseSessionRow] {
+        let sessions = try sessionRepository.getSessions(from: from, to: to, projectId: projectId)
 
         return sessions.map { session, project in
             VerboseSessionRow(

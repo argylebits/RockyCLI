@@ -2,15 +2,15 @@ import ArgumentParser
 import Foundation
 import RockyCore
 
-struct Dashboard: AsyncParsableCommand {
+struct Dashboard: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Show an analytics dashboard with trends and insights."
     )
 
-    func run() async throws {
-        let ctx = try await AppContext.build()
+    func run() throws {
+        let ctx = try AppContext.build()
 
-        let data = try await ctx.dashboardService.generate()
+        let data = try ctx.dashboardService.generate()
         output(DashboardRenderer.render(data))
     }
 }

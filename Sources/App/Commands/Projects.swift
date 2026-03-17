@@ -1,15 +1,15 @@
 import ArgumentParser
 import RockyCore
 
-struct Projects: AsyncParsableCommand {
+struct Projects: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "List all projects."
     )
 
-    func run() async throws {
-        let ctx = try await AppContext.build()
+    func run() throws {
+        let ctx = try AppContext.build()
 
-        let projects = try await ctx.projectService.list()
+        let projects = try ctx.projectService.list()
 
         if projects.isEmpty {
             output("No projects found.")

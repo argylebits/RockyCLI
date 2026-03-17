@@ -2,7 +2,7 @@ import ArgumentParser
 import Foundation
 import RockyCore
 
-struct Status: AsyncParsableCommand {
+struct Status: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Show time tracking summary."
     )
@@ -31,15 +31,15 @@ struct Status: AsyncParsableCommand {
     @Option(name: .long, help: "Filter to a single project.")
     var project: String?
 
-    func run() async throws {
-        let ctx = try await AppContext.build()
+    func run() throws {
+        let ctx = try AppContext.build()
 
         let calendar = Calendar.current
 
         // Resolve project filter
         var projectId: Int? = nil
         if let projectName = project {
-            guard let proj = try await ctx.projectService.getByName(projectName) else {
+            guard let proj = try ctx.projectService.getByName(projectName) else {
                 throw ValidationError("No project found with name \"\(projectName)\".")
             }
             projectId = proj.id
@@ -47,7 +47,7 @@ struct Status: AsyncParsableCommand {
 
         // No time range flags — show current status
         if !today && !week && !month && !year && from == nil {
-            let statuses = try await ctx.reportService.allProjectsWithStatus()
+            let statuses = try ctx.reportService.allProjectsWithStatus()
             output(Table.renderStatus(statuses))
             return
         }
@@ -58,10 +58,10 @@ struct Status: AsyncParsableCommand {
         if today {
             let (start, _) = dayRange(for: now, calendar: calendar)
             if verbose {
-                let sessions = try await ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
+                let sessions = try ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
                 output(Table.renderVerbose(sessions, period: Date().formatted(DateTimeFormat.fullDate), projectFilter: project))
             } else {
-                let totals = try await ctx.reportService.totals(from: start, to: endOfToday, projectId: projectId)
+                let totals = try ctx.reportService.totals(from: start, to: endOfToday, projectId: projectId)
                 output(Table.renderTodayTotals(totals, period: Date().formatted(DateTimeFormat.fullDate)))
             }
             return
@@ -71,10 +71,10 @@ struct Status: AsyncParsableCommand {
             let (start, _) = weekRange(for: now, calendar: calendar)
             let period = DateTimeFormat.periodRange(from: start, to: endOfToday)
             if verbose {
-                let sessions = try await ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
+                let sessions = try ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
                 output(Table.renderVerbose(sessions, period: period, projectFilter: project))
             } else {
-                let report = try await ctx.reportService.groupedByDay(from: start, to: endOfToday, projectId: projectId)
+                let report = try ctx.reportService.groupedByDay(from: start, to: endOfToday, projectId: projectId)
                 output(Table.renderGrouped(report, period: period, projectFilter: project))
             }
             return
@@ -84,10 +84,10 @@ struct Status: AsyncParsableCommand {
             let (start, _) = monthRange(for: now, calendar: calendar)
             let period = now.formatted(DateTimeFormat.monthYear)
             if verbose {
-                let sessions = try await ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
+                let sessions = try ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
                 output(Table.renderVerbose(sessions, period: period, projectFilter: project))
             } else {
-                let report = try await ctx.reportService.groupedByWeekOfMonth(from: start, to: endOfToday, projectId: projectId)
+                let report = try ctx.reportService.groupedByWeekOfMonth(from: start, to: endOfToday, projectId: projectId)
                 output(Table.renderGrouped(report, period: period, projectFilter: project))
             }
             return
@@ -97,10 +97,10 @@ struct Status: AsyncParsableCommand {
             let (start, _) = yearRange(for: now, calendar: calendar)
             let period = now.formatted(DateTimeFormat.year)
             if verbose {
-                let sessions = try await ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
+                let sessions = try ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
                 output(Table.renderVerbose(sessions, period: period, projectFilter: project))
             } else {
-                let report = try await ctx.reportService.groupedByMonth(from: start, to: endOfToday, projectId: projectId)
+                let report = try ctx.reportService.groupedByMonth(from: start, to: endOfToday, projectId: projectId)
                 output(Table.renderGrouped(report, period: period, projectFilter: project, hoursOnly: true))
             }
             return
@@ -125,16 +125,16 @@ struct Status: AsyncParsableCommand {
             let period = DateTimeFormat.periodRange(from: fromDate, to: toDate)
 
             if verbose {
-                let sessions = try await ctx.reportService.verboseSessions(from: fromDate, to: toDate, projectId: projectId)
+                let sessions = try ctx.reportService.verboseSessions(from: fromDate, to: toDate, projectId: projectId)
                 output(Table.renderVerbose(sessions, period: period, projectFilter: project))
             } else if days <= 7 {
-                let report = try await ctx.reportService.groupedByDay(from: fromDate, to: toDate, projectId: projectId)
+                let report = try ctx.reportService.groupedByDay(from: fromDate, to: toDate, projectId: projectId)
                 output(Table.renderGrouped(report, period: period, projectFilter: project))
             } else if days <= 60 {
-                let report = try await ctx.reportService.groupedByWeek(from: fromDate, to: toDate, projectId: projectId)
+                let report = try ctx.reportService.groupedByWeek(from: fromDate, to: toDate, projectId: projectId)
                 output(Table.renderGrouped(report, period: period, projectFilter: project))
             } else {
-                let report = try await ctx.reportService.groupedByMonth(from: fromDate, to: toDate, projectId: projectId)
+                let report = try ctx.reportService.groupedByMonth(from: fromDate, to: toDate, projectId: projectId)
                 output(Table.renderGrouped(report, period: period, projectFilter: project, hoursOnly: true))
             }
         }
