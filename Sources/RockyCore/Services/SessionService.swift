@@ -7,40 +7,40 @@ public struct SessionService: Sendable {
         self.repository = repository
     }
 
-    public func start(projectId: Int) async throws {
-        try await repository.start(projectId: projectId)
+    public func start(projectId: Int) throws {
+        try repository.start(projectId: projectId)
     }
 
-    public func hasRunningSession(projectId: Int) async throws -> Bool {
-        try await repository.hasRunningSession(projectId: projectId)
+    public func hasRunningSession(projectId: Int) throws -> Bool {
+        try repository.hasRunningSession(projectId: projectId)
     }
 
-    public func stop(projectId: Int) async throws -> Session {
-        try await repository.stop(projectId: projectId)
+    public func stop(projectId: Int) throws -> Session {
+        try repository.stop(projectId: projectId)
     }
 
-    public func stopAll() async throws -> [Session] {
-        try await repository.stopAll()
+    public func stopAll() throws -> [Session] {
+        try repository.stopAll()
     }
 
-    public func getRunning() async throws -> [Session] {
-        try await repository.getRunning()
+    public func getRunning() throws -> [Session] {
+        try repository.getRunning()
     }
 
-    public func getRunningWithProjects() async throws -> [(Session, Project)] {
-        try await repository.getRunningWithProjects()
+    public func getRunningWithProjects() throws -> [(Session, Project)] {
+        try repository.getRunningWithProjects()
     }
 
-    public func insert(projectId: Int, startTime: Date, endTime: Date?) async throws {
-        try await repository.insert(projectId: projectId, startTime: startTime, endTime: endTime)
+    public func insert(projectId: Int, startTime: Date, endTime: Date?) throws {
+        try repository.insert(projectId: projectId, startTime: startTime, endTime: endTime)
     }
 
-    public func getSessions(from: Date, to: Date, projectId: Int? = nil) async throws -> [(Session, Project)] {
-        try await repository.getSessions(from: from, to: to, projectId: projectId)
+    public func getSessions(from: Date, to: Date, projectId: Int? = nil) throws -> [(Session, Project)] {
+        try repository.getSessions(from: from, to: to, projectId: projectId)
     }
 
-    public func getById(_ id: Int) async throws -> Session? {
-        try await repository.getById(id)
+    public func getById(_ id: Int) throws -> Session? {
+        try repository.getById(id)
     }
 
     public func editSession(
@@ -48,14 +48,14 @@ public struct SessionService: Sendable {
         newStart: Date?,
         newStop: Date?,
         newDuration: TimeInterval?
-    ) async throws -> Session {
+    ) throws -> Session {
         // Validate not overdetermined
         if newStart != nil && newStop != nil && newDuration != nil {
             throw RockyCoreError.overdetermined
         }
 
         // Fetch existing session
-        guard let existing = try await repository.getById(id) else {
+        guard let existing = try repository.getById(id) else {
             throw RockyCoreError.sessionNotFound(id)
         }
 
@@ -112,6 +112,6 @@ public struct SessionService: Sendable {
             throw RockyCoreError.stopBeforeStart
         }
 
-        return try await repository.update(id: id, startTime: finalStart, endTime: finalStop)
+        return try repository.update(id: id, startTime: finalStart, endTime: finalStop)
     }
 }
