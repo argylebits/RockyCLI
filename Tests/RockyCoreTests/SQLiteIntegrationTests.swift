@@ -6,17 +6,19 @@ actor TestDatabase {
     static let shared = TestDatabase()
     private var db: Database?
 
-    func get() async throws -> Database {
+    func get() throws -> Database {
         if let db { return db }
-        let db = try await Database.open(at: ":memory:")
+        let db = try Database.inMemory()
         self.db = db
         return db
     }
 
     func reset() async throws {
-        let db = try await get()
-        try await db.execute("DELETE FROM sessions")
-        try await db.execute("DELETE FROM projects")
+        let db = try get()
+        try await db.dbQueue.write { db in
+            try db.execute(sql: "DELETE FROM sessions")
+            try db.execute(sql: "DELETE FROM projects")
+        }
     }
 }
 
@@ -26,29 +28,34 @@ struct SQLiteIntegrationTests {
     @Test("Tables exist after migration")
     func tablesExist() async throws {
         let db = try await TestDatabase.shared.get()
-        let tables = try await db.query(
-            "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-        )
-        let names = tables.compactMap { $0.column("name")?.string }
-        #expect(names.contains("projects"))
-        #expect(names.contains("sessions"))
-        #expect(names.contains("migrations"))
+        let tables = try await db.dbQueue.read { db in
+            try String.fetchAll(db, sql:
+                "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+        }
+        #expect(tables.contains("projects"))
+        #expect(tables.contains("sessions"))
     }
 
-    @Test("Migration version is 1")
-    func migrationVersion() async throws {
+    @Test("GRDB migrations table exists")
+    func grdbMigrationsExist() async throws {
         let db = try await TestDatabase.shared.get()
-        let rows = try await db.query("SELECT version FROM migrations")
-        #expect(rows.count == 1)
-        #expect(rows[0].column("version")?.integer == 1)
+        let tables = try await db.dbQueue.read { db in
+            try String.fetchAll(db, sql:
+                "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'grdb%'")
+        }
+        #expect(!tables.isEmpty)
     }
 
     @Test("Migrations are idempotent")
     func migrationsIdempotent() async throws {
         let db = try await TestDatabase.shared.get()
-        try await Migrations.run(on: db)
-        let rows = try await db.query("SELECT version FROM migrations")
-        #expect(rows.count == 1)
+        try Migrations.run(on: db)
+        let tables = try await db.dbQueue.read { db in
+            try String.fetchAll(db, sql:
+                "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+        }
+        #expect(tables.contains("projects"))
+        #expect(tables.contains("sessions"))
     }
 
     @Test("SQLiteProjectRepository round-trips project data")
