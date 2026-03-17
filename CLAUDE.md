@@ -39,14 +39,15 @@ RockyCLI/
 - **No CLI imports** — do not import ArgumentParser or any CLI-specific package
 - **No UI imports** — do not import any UI framework
 - **No print statements** — RockyCore never writes to stdout
-- **Raw SQL only** — use sqlite-nio directly, no ORM, no query builders
-- **Async/await throughout** — all database calls must be async
+- **Raw SQL through GRDB** — all queries use raw SQL via GRDB (`db.execute(sql:)`, `Model.fetchOne(db, sql:)`, `Model.fetchAll(db, sql:)`). Do not use GRDB's query interface (`.filter()`, `.order()`). GRDB provides connection management, Codable row mapping, and migration tracking — not query generation.
+- **Explicit ISO8601 dates** — use `Date().iso8601String` for all date writes and `Date.fromISO8601()` for reads. Do not use GRDB's date encoding/decoding strategies.
+- **Synchronous database access** — GRDB is synchronous. No async/await in the database, repository, or service layers.
 - **Errors must throw** — never silently swallow errors
 
 ### App (executable)
 
 - **No business logic** — App only calls RockyCore and formats results
-- **No direct database access** — never import sqlite-nio or touch the database
+- **No direct database access** — never import GRDB or touch the database
 - **Output must match `RockyDocs/OUTPUT.md` exactly** — column alignment, divider characters, duration format
 - **Use `▶` (U+25B6) for active timers** — two spaces `  ` for inactive rows
 - **Use `─` (U+2500) for divider lines** — not `-` (hyphen)
