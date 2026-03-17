@@ -1,4 +1,5 @@
 import Foundation
+import GRDB
 
 public struct Session: Codable, Sendable {
     public let id: Int
@@ -25,5 +26,33 @@ public struct Session: Codable, Sendable {
     public func duration(at now: Date = Date()) -> TimeInterval {
         let end = endTime ?? now
         return end.timeIntervalSince(startTime)
+    }
+}
+
+extension Session: FetchableRecord, TableRecord {
+    public static let databaseTableName = "sessions"
+
+    public init(row: Row) throws {
+        let startTimeString: String = row["start_time"]
+        guard let startTime = Date.fromISO8601(startTimeString) else {
+            throw RockyCoreError.invalidRow("sessions")
+        }
+
+        let endTime: Date?
+        if let endTimeString: String = row["end_time"] {
+            guard let parsed = Date.fromISO8601(endTimeString) else {
+                throw RockyCoreError.invalidRow("sessions")
+            }
+            endTime = parsed
+        } else {
+            endTime = nil
+        }
+
+        self.init(
+            id: row["id"],
+            projectId: row["project_id"],
+            startTime: startTime,
+            endTime: endTime
+        )
     }
 }

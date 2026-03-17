@@ -24,7 +24,6 @@ struct Edit: AsyncParsableCommand {
 
     func run() async throws {
         let ctx = try await AppContext.build()
-        defer { Task { try? await ctx.close() } }
 
         if let sessionId = session {
             try await nonInteractive(sessionId: sessionId, ctx: ctx)

@@ -15,7 +15,6 @@ struct Stop: AsyncParsableCommand {
 
     func run() async throws {
         let ctx = try await AppContext.build()
-        defer { Task { try? await ctx.close() } }
 
         if all {
             try await stopAll(ctx: ctx)

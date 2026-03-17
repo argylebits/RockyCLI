@@ -1,4 +1,5 @@
 import Foundation
+import GRDB
 
 public struct Project: Codable, Sendable {
     public let id: Int
@@ -18,6 +19,23 @@ public struct Project: Codable, Sendable {
         self.parentId = parentId
         self.name = name
         self.createdAt = createdAt
+    }
+}
+
+extension Project: FetchableRecord, TableRecord {
+    public static let databaseTableName = "projects"
+
+    public init(row: Row) throws {
+        let createdAtString: String = row["created_at"]
+        guard let createdAt = Date.fromISO8601(createdAtString) else {
+            throw RockyCoreError.invalidRow("projects")
+        }
+        self.init(
+            id: row["id"],
+            parentId: row["parent_id"],
+            name: row["name"],
+            createdAt: createdAt
+        )
     }
 }
 

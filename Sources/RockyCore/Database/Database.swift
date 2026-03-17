@@ -1,22 +1,14 @@
 import Foundation
-import SQLiteNIO
-import NIOPosix
-import Logging
+import GRDB
 
 public final class Database: Sendable {
-    private let connection: SQLiteConnection
-    private let threadPool: NIOThreadPool
-    private let eventLoopGroup: MultiThreadedEventLoopGroup
+    public let dbQueue: DatabaseQueue
 
-    public var db: SQLiteConnection { connection }
-
-    private init(connection: SQLiteConnection, threadPool: NIOThreadPool, eventLoopGroup: MultiThreadedEventLoopGroup) {
-        self.connection = connection
-        self.threadPool = threadPool
-        self.eventLoopGroup = eventLoopGroup
+    private init(dbQueue: DatabaseQueue) {
+        self.dbQueue = dbQueue
     }
 
-    public static func open() async throws -> Database {
+    public static func open(trace: (@Sendable (String) -> Void)? = nil) throws -> Database {
         let dbDir = FileManager.default
             .homeDirectoryForCurrentUser
             .appendingPathComponent(".rocky")
@@ -26,49 +18,26 @@ public final class Database: Sendable {
         }
 
         let dbPath = dbDir.appendingPathComponent("rocky.db").path
-        return try await open(at: dbPath)
-    }
-
-    public static func open(at path: String) async throws -> Database {
-        let threadPool = NIOThreadPool(numberOfThreads: 1)
-        threadPool.start()
-
-        let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        let logger = Logger(label: "rocky")
-
-        let storage: SQLiteConnection.Storage = (path == ":memory:") ? .memory : .file(path: path)
-
-        let connection = try await SQLiteConnection.open(
-            storage: storage,
-            threadPool: threadPool,
-            logger: logger,
-            on: eventLoopGroup.any()
-        )
-
-        let database = Database(connection: connection, threadPool: threadPool, eventLoopGroup: eventLoopGroup)
-        try await Migrations.run(on: database)
+        let database = Database(dbQueue: try DatabaseQueue(path: dbPath, configuration: makeConfig(trace: trace)))
+        try Migrations.run(on: database)
         return database
     }
 
-    public func query(_ sql: String, _ binds: [SQLiteData] = []) async throws -> [SQLiteRow] {
-        nonisolated(unsafe) var rows: [SQLiteRow] = []
-        try await connection.query(sql, binds) { row in
-            rows.append(row)
+    public static func inMemory(trace: (@Sendable (String) -> Void)? = nil) throws -> Database {
+        let database = Database(dbQueue: try DatabaseQueue(configuration: makeConfig(trace: trace)))
+        try Migrations.run(on: database)
+        return database
+    }
+
+    private static func makeConfig(trace: (@Sendable (String) -> Void)?) -> Configuration {
+        var config = Configuration()
+        if let trace {
+            config.prepareDatabase { db in
+                db.trace { event in
+                    trace(String(describing: event))
+                }
+            }
         }
-        return rows
-    }
-
-    public func execute(_ sql: String, _ binds: [SQLiteData] = []) async throws {
-        try await connection.query(sql, binds) { _ in }
-    }
-
-    public func lastAutoincrementID() async throws -> Int {
-        try await connection.lastAutoincrementID()
-    }
-
-    public func close() async throws {
-        try await connection.close()
-        try await threadPool.shutdownGracefully()
-        try await eventLoopGroup.shutdownGracefully()
+        return config
     }
 }
