@@ -33,7 +33,6 @@ struct Status: AsyncParsableCommand {
 
     func run() async throws {
         let ctx = try await AppContext.build()
-        defer { Task { try? await ctx.close() } }
 
         let calendar = Calendar.current
 

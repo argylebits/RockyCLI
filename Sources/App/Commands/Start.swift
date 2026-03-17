@@ -11,7 +11,6 @@ struct Start: AsyncParsableCommand {
 
     func run() async throws {
         let ctx = try await AppContext.build()
-        defer { Task { try? await ctx.close() } }
 
         let proj = try await ctx.projectService.findOrCreate(name: project)
 

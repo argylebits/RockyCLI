@@ -1,5 +1,5 @@
 import Foundation
-import SQLiteNIO
+import GRDB
 
 public struct SQLiteProjectRepository: ProjectRepository, Sendable {
     private let db: Database
@@ -12,40 +12,37 @@ public struct SQLiteProjectRepository: ProjectRepository, Sendable {
         if let existing = try await getByName(name) {
             return existing
         }
-        try await db.execute(
-            "INSERT INTO projects (name) VALUES (?)",
-            [.text(name)]
-        )
-        let id = try await db.lastAutoincrementID()
-        let rows = try await db.query(
-            "SELECT * FROM projects WHERE id = ?",
-            [.integer(id)]
-        )
-        return try rows[0].decode(Project.self)
+        return try await db.dbQueue.write { db in
+            try db.execute(
+                sql: "INSERT INTO projects (name, created_at) VALUES (?, ?)",
+                arguments: [name, Date().iso8601String])
+            let id = db.lastInsertedRowID
+            return try Project.fetchOne(db,
+                sql: "SELECT * FROM projects WHERE id = ?",
+                arguments: [id])!
+        }
     }
 
     public func getById(_ id: Int) async throws -> Project? {
-        let rows = try await db.query(
-            "SELECT * FROM projects WHERE id = ?",
-            [.integer(id)]
-        )
-        guard let row = rows.first else { return nil }
-        return try row.decode(Project.self)
+        try await db.dbQueue.read { db in
+            try Project.fetchOne(db,
+                sql: "SELECT * FROM projects WHERE id = ?",
+                arguments: [id])
+        }
     }
 
     public func getByName(_ name: String) async throws -> Project? {
-        let rows = try await db.query(
-            "SELECT * FROM projects WHERE name = ? COLLATE NOCASE",
-            [.text(name)]
-        )
-        guard let row = rows.first else { return nil }
-        return try row.decode(Project.self)
+        try await db.dbQueue.read { db in
+            try Project.fetchOne(db,
+                sql: "SELECT * FROM projects WHERE name = ? COLLATE NOCASE",
+                arguments: [name])
+        }
     }
 
     public func list() async throws -> [Project] {
-        let rows = try await db.query(
-            "SELECT * FROM projects ORDER BY created_at ASC"
-        )
-        return try rows.map { try $0.decode(Project.self) }
+        try await db.dbQueue.read { db in
+            try Project.fetchAll(db,
+                sql: "SELECT * FROM projects ORDER BY created_at ASC")
+        }
     }
 }
