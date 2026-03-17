@@ -12,7 +12,7 @@ public struct SQLiteSessionRepository: SessionRepository, Sendable {
         try await db.dbQueue.write { db in
             try db.execute(
                 sql: "INSERT INTO sessions (project_id, start_time) VALUES (?, ?)",
-                arguments: [projectId, Date()])
+                arguments: [projectId, Date().iso8601String])
         }
     }
 
@@ -34,7 +34,7 @@ public struct SQLiteSessionRepository: SessionRepository, Sendable {
             }
             try db.execute(
                 sql: "UPDATE sessions SET end_time = ? WHERE id = ?",
-                arguments: [Date(), session.id])
+                arguments: [Date().iso8601String, session.id])
             return try Session.fetchOne(db,
                 sql: "SELECT * FROM sessions WHERE id = ?",
                 arguments: [session.id])!
@@ -45,7 +45,7 @@ public struct SQLiteSessionRepository: SessionRepository, Sendable {
         try await db.dbQueue.write { db in
             let running = try Session.fetchAll(db,
                 sql: "SELECT * FROM sessions WHERE end_time IS NULL ORDER BY start_time ASC")
-            let now = Date()
+            let now = Date().iso8601String
             var stopped: [Session] = []
             for session in running {
                 try db.execute(
@@ -79,11 +79,15 @@ public struct SQLiteSessionRepository: SessionRepository, Sendable {
                 """)
             return try rows.map { row in
                 let session = try Session(row: row)
+                let pCreatedAtString: String = row["p_created_at"]
+                guard let pCreatedAt = Date.fromISO8601(pCreatedAtString) else {
+                    throw RockyCoreError.invalidRow("projects")
+                }
                 let project = Project(
                     id: row["p_id"],
                     parentId: row["p_parent_id"],
                     name: row["p_name"],
-                    createdAt: row["p_created_at"])
+                    createdAt: pCreatedAt)
                 return (session, project)
             }
         }
@@ -93,7 +97,7 @@ public struct SQLiteSessionRepository: SessionRepository, Sendable {
         try await db.dbQueue.write { db in
             try db.execute(
                 sql: "INSERT INTO sessions (project_id, start_time, end_time) VALUES (?, ?, ?)",
-                arguments: [projectId, startTime, endTime])
+                arguments: [projectId, startTime.iso8601String, endTime?.iso8601String])
         }
     }
 
@@ -109,7 +113,7 @@ public struct SQLiteSessionRepository: SessionRepository, Sendable {
         try await db.dbQueue.write { db in
             try db.execute(
                 sql: "UPDATE sessions SET start_time = ?, end_time = ? WHERE id = ?",
-                arguments: [startTime, endTime, id])
+                arguments: [startTime.iso8601String, endTime?.iso8601String, id])
             return try Session.fetchOne(db,
                 sql: "SELECT * FROM sessions WHERE id = ?",
                 arguments: [id])!
@@ -125,7 +129,7 @@ public struct SQLiteSessionRepository: SessionRepository, Sendable {
                 JOIN projects p ON s.project_id = p.id
                 WHERE (s.start_time < ? AND (s.end_time > ? OR s.end_time IS NULL))
                 """
-            var arguments: [any DatabaseValueConvertible] = [to, from]
+            var arguments: [any DatabaseValueConvertible] = [to.iso8601String, from.iso8601String]
 
             if let projectId {
                 sql += " AND s.project_id = ?"
@@ -136,11 +140,15 @@ public struct SQLiteSessionRepository: SessionRepository, Sendable {
             let rows = try Row.fetchAll(db, sql: sql, arguments: StatementArguments(arguments))
             return try rows.map { row in
                 let session = try Session(row: row)
+                let pCreatedAtString: String = row["p_created_at"]
+                guard let pCreatedAt = Date.fromISO8601(pCreatedAtString) else {
+                    throw RockyCoreError.invalidRow("projects")
+                }
                 let project = Project(
                     id: row["p_id"],
                     parentId: row["p_parent_id"],
                     name: row["p_name"],
-                    createdAt: row["p_created_at"])
+                    createdAt: pCreatedAt)
                 return (session, project)
             }
         }

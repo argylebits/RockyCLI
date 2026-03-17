@@ -29,14 +29,30 @@ public struct Session: Codable, Sendable {
     }
 }
 
-extension Session: FetchableRecord, PersistableRecord, TableRecord {
+extension Session: FetchableRecord, TableRecord {
     public static let databaseTableName = "sessions"
 
-    public static func databaseDateDecodingStrategy(for column: String) -> DatabaseDateDecodingStrategy {
-        .iso8601
-    }
+    public init(row: Row) throws {
+        let startTimeString: String = row["start_time"]
+        guard let startTime = Date.fromISO8601(startTimeString) else {
+            throw RockyCoreError.invalidRow("sessions")
+        }
 
-    public static func databaseDateEncodingStrategy(for column: String) -> DatabaseDateEncodingStrategy {
-        .iso8601
+        let endTime: Date?
+        if let endTimeString: String = row["end_time"] {
+            guard let parsed = Date.fromISO8601(endTimeString) else {
+                throw RockyCoreError.invalidRow("sessions")
+            }
+            endTime = parsed
+        } else {
+            endTime = nil
+        }
+
+        self.init(
+            id: row["id"],
+            projectId: row["project_id"],
+            startTime: startTime,
+            endTime: endTime
+        )
     }
 }
