@@ -2,7 +2,7 @@ import Testing
 import Foundation
 @testable import RockyCore
 
-@Suite("SessionService.editSession")
+@Suite("SessionService.update")
 struct SessionEditTests {
     private func makeServices() -> (MockProjectRepository, MockSessionRepository, SessionService) {
         let projectRepo = MockProjectRepository()
@@ -39,7 +39,7 @@ struct SessionEditTests {
         let originalEnd = all[0].0.endTime!
 
         let newStart = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 9))!
-        let updated = try service.editSession(id: sessionId, newStart: newStart, newStop: nil, newDuration: nil)
+        let updated = try service.update(id: sessionId, newStart: newStart, newStop: nil, newDuration: nil)
 
         #expect(updated.startTime == newStart)
         #expect(updated.endTime == originalEnd)
@@ -60,7 +60,7 @@ struct SessionEditTests {
         let originalStart = all[0].0.startTime
 
         let newStop = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 14))!
-        let updated = try service.editSession(id: sessionId, newStart: nil, newStop: newStop, newDuration: nil)
+        let updated = try service.update(id: sessionId, newStart: nil, newStop: newStop, newDuration: nil)
 
         #expect(updated.startTime == originalStart)
         #expect(updated.endTime == newStop)
@@ -81,7 +81,7 @@ struct SessionEditTests {
 
         let newStart = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 9))!
         let newStop = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
-        let updated = try service.editSession(id: sessionId, newStart: newStart, newStop: newStop, newDuration: nil)
+        let updated = try service.update(id: sessionId, newStart: newStart, newStop: newStop, newDuration: nil)
 
         #expect(updated.startTime == newStart)
         #expect(updated.endTime == newStop)
@@ -101,7 +101,7 @@ struct SessionEditTests {
         let sessionId = all[0].0.id
         let originalStart = all[0].0.startTime
 
-        let updated = try service.editSession(id: sessionId, newStart: nil, newStop: nil, newDuration: 3600)
+        let updated = try service.update(id: sessionId, newStart: nil, newStop: nil, newDuration: 3600)
 
         #expect(updated.startTime == originalStart)
         #expect(abs(updated.endTime!.timeIntervalSince(originalStart) - 3600) < 1)
@@ -121,7 +121,7 @@ struct SessionEditTests {
         let sessionId = all[0].0.id
 
         let newStart = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 9))!
-        let updated = try service.editSession(id: sessionId, newStart: newStart, newStop: nil, newDuration: 5400)
+        let updated = try service.update(id: sessionId, newStart: newStart, newStop: nil, newDuration: 5400)
 
         #expect(updated.startTime == newStart)
         #expect(abs(updated.endTime!.timeIntervalSince(newStart) - 5400) < 1)
@@ -141,7 +141,7 @@ struct SessionEditTests {
         let sessionId = all[0].0.id
 
         let newStop = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 14))!
-        let updated = try service.editSession(id: sessionId, newStart: nil, newStop: newStop, newDuration: 7200)
+        let updated = try service.update(id: sessionId, newStart: nil, newStop: newStop, newDuration: 7200)
 
         #expect(abs(updated.startTime.timeIntervalSince(newStop) + 7200) < 1)
         #expect(updated.endTime == newStop)
@@ -164,7 +164,7 @@ struct SessionEditTests {
         let newStop = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
 
         #expect(throws: RockyCoreError.self) {
-            try service.editSession(id: sessionId, newStart: newStart, newStop: newStop, newDuration: 3600)
+            try service.update(id: sessionId, newStart: newStart, newStop: newStop, newDuration: 3600)
         }
     }
 
@@ -173,7 +173,7 @@ struct SessionEditTests {
         let (_, _, service) = makeServices()
 
         #expect(throws: RockyCoreError.self) {
-            try service.editSession(id: 999, newStart: Date(), newStop: nil, newDuration: nil)
+            try service.update(id: 999, newStart: Date(), newStop: nil, newDuration: nil)
         }
     }
 
@@ -185,7 +185,7 @@ struct SessionEditTests {
         let sessionId = created.id
 
         #expect(throws: RockyCoreError.self) {
-            try service.editSession(id: sessionId, newStart: nil, newStop: Date(), newDuration: nil)
+            try service.update(id: sessionId, newStart: nil, newStop: Date(), newDuration: nil)
         }
     }
 
@@ -205,7 +205,7 @@ struct SessionEditTests {
         let futureStart = Date().addingTimeInterval(86400)
 
         #expect(throws: RockyCoreError.self) {
-            try service.editSession(id: sessionId, newStart: futureStart, newStop: nil, newDuration: nil)
+            try service.update(id: sessionId, newStart: futureStart, newStop: nil, newDuration: nil)
         }
     }
 
@@ -225,7 +225,7 @@ struct SessionEditTests {
         let badStop = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 9))!
 
         #expect(throws: RockyCoreError.self) {
-            try service.editSession(id: sessionId, newStart: nil, newStop: badStop, newDuration: nil)
+            try service.update(id: sessionId, newStart: nil, newStop: badStop, newDuration: nil)
         }
     }
 
@@ -243,7 +243,7 @@ struct SessionEditTests {
         let sessionId = all[0].0.id
 
         #expect(throws: RockyCoreError.self) {
-            try service.editSession(id: sessionId, newStart: nil, newStop: nil, newDuration: 0)
+            try service.update(id: sessionId, newStart: nil, newStop: nil, newDuration: 0)
         }
     }
 
@@ -261,7 +261,7 @@ struct SessionEditTests {
         let sessionId = all[0].0.id
 
         #expect(throws: RockyCoreError.self) {
-            try service.editSession(id: sessionId, newStart: nil, newStop: nil, newDuration: -100)
+            try service.update(id: sessionId, newStart: nil, newStop: nil, newDuration: -100)
         }
     }
 
@@ -273,7 +273,7 @@ struct SessionEditTests {
         let sessionId = created.id
 
         let newStart = Date().addingTimeInterval(-7200)
-        let updated = try service.editSession(id: sessionId, newStart: newStart, newStop: nil, newDuration: nil)
+        let updated = try service.update(id: sessionId, newStart: newStart, newStop: nil, newDuration: nil)
 
         #expect(abs(updated.startTime.timeIntervalSince(newStart)) < 1)
         #expect(updated.isRunning)
@@ -293,7 +293,7 @@ struct SessionEditTests {
         let sessionId = all[0].0.id
 
         let newStop = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 1, minute: 30))!
-        let updated = try service.editSession(id: sessionId, newStart: nil, newStop: newStop, newDuration: nil)
+        let updated = try service.update(id: sessionId, newStart: nil, newStop: newStop, newDuration: nil)
 
         #expect(updated.endTime == newStop)
         #expect(updated.duration() == 9000) // 2.5 hours

@@ -16,14 +16,14 @@ struct Start: ParsableCommand {
             ?? ctx.projectService.create(name: project)
 
         let autoStop = try ConfigFile.getBool("auto-stop", default: true)
-        if autoStop, try ctx.sessionService.hasRunningSession(projectId: proj.id) {
+        if autoStop, try !ctx.sessionService.list(running: true, projectId: proj.id).isEmpty {
             throw ValidationError("Timer already running for \(proj.name)")
         }
 
-        try ctx.sessionService.start(projectId: proj.id)
+        try ctx.sessionService.create(projectId: proj.id)
 
         var message = "Started \(proj.name)"
-        let running = try ctx.sessionService.getRunningWithProjects()
+        let running = try ctx.sessionService.list(running: true)
         if running.count > 1 {
             let names = running.map(\.1.name).joined(separator: ", ")
             message += "\nCurrently running: \(names)"

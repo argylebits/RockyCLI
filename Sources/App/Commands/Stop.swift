@@ -27,7 +27,7 @@ struct Stop: ParsableCommand {
         }
 
         // No args — check running timers
-        let running = try ctx.sessionService.getRunningWithProjects()
+        let running = try ctx.sessionService.list(running: true)
 
         if running.isEmpty {
             output("No timers currently running.")
@@ -35,8 +35,8 @@ struct Stop: ParsableCommand {
         }
 
         if running.count == 1 {
-            let (_, proj) = running[0]
-            let stopped = try ctx.sessionService.stop(projectId: proj.id)
+            let (session, proj) = running[0]
+            let stopped = try ctx.sessionService.update(id: session.id, newStart: nil, newStop: Date(), newDuration: nil)
             output("Stopped \(proj.name) (\(DurationFormat.formatted(stopped.duration())))")
             return
         }
@@ -59,8 +59,8 @@ struct Stop: ParsableCommand {
             }
 
             if let num = Int(input), num >= 1, num <= running.count {
-                let (_, proj) = running[num - 1]
-                let stopped = try ctx.sessionService.stop(projectId: proj.id)
+                let (session, proj) = running[num - 1]
+                let stopped = try ctx.sessionService.update(id: session.id, newStart: nil, newStop: Date(), newDuration: nil)
                 output("Stopped \(proj.name) (\(DurationFormat.formatted(stopped.duration())))")
                 return
             }
@@ -73,22 +73,26 @@ struct Stop: ParsableCommand {
         guard let proj = try ctx.projectService.get(name: name) else {
             throw ValidationError("No project found with name \"\(name)\".")
         }
-        let stopped = try ctx.sessionService.stop(projectId: proj.id)
+        let running = try ctx.sessionService.list(running: true, projectId: proj.id)
+        guard let (session, _) = running.first else {
+            throw ValidationError("No timer running for \(proj.name).")
+        }
+        let stopped = try ctx.sessionService.update(id: session.id, newStart: nil, newStop: Date(), newDuration: nil)
         output("Stopped \(proj.name) (\(DurationFormat.formatted(stopped.duration())))")
     }
 
     private func stopAll(ctx: AppContext) throws {
-        let stopped = try ctx.sessionService.stopAll()
-        if stopped.isEmpty {
+        let running = try ctx.sessionService.list(running: true)
+        if running.isEmpty {
             output("No timers currently running.")
             return
         }
 
+        let now = Date()
         var entries: [(name: String, duration: String)] = []
-        for session in stopped {
-            if let proj = try ctx.projectService.get(id: session.projectId) {
-                entries.append((proj.name, DurationFormat.formatted(session.duration())))
-            }
+        for (session, proj) in running {
+            let stopped = try ctx.sessionService.update(id: session.id, newStart: nil, newStop: now, newDuration: nil)
+            entries.append((proj.name, DurationFormat.formatted(stopped.duration())))
         }
 
         let maxName = entries.map(\.name.count).max() ?? 0

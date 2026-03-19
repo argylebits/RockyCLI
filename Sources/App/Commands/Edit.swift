@@ -40,7 +40,7 @@ struct Edit: ParsableCommand {
         let newStart = try start.map { try DateTimeFormat.parse($0) }
         let newStop = try stop.map { try DateTimeFormat.parse($0) }
 
-        let updated = try ctx.sessionService.editSession(
+        let updated = try ctx.sessionService.update(
             id: sessionId,
             newStart: newStart,
             newStop: newStop,
@@ -60,7 +60,7 @@ struct Edit: ParsableCommand {
         let calendar = Calendar.current
         let to = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: Date()))!
         let from = calendar.date(byAdding: .day, value: -90, to: to)!
-        let sessions = try ctx.sessionService.getSessions(from: from, to: to, projectId: proj.id)
+        let sessions = try ctx.sessionService.list(from: from, to: to, projectId: proj.id)
 
         if sessions.isEmpty {
             output("No sessions found for \(proj.name).")
@@ -77,7 +77,7 @@ struct Edit: ParsableCommand {
 
         let sessionId = try promptForSessionId(sessions: sessions.map(\.0))
 
-        guard let existing = try ctx.sessionService.getById(sessionId) else {
+        guard let existing = try ctx.sessionService.get(id: sessionId) else {
             throw ValidationError("No session found with ID \(sessionId).")
         }
 
@@ -98,15 +98,15 @@ struct Edit: ParsableCommand {
         switch field {
         case .start:
             let newStart = try promptForDatetime("New value (YYYY-MM-DD HH:MM): ")
-            let updated = try ctx.sessionService.editSession(id: sessionId, newStart: newStart, newStop: nil, newDuration: nil)
+            let updated = try ctx.sessionService.update(id: sessionId, newStart: newStart, newStop: nil, newDuration: nil)
             printSessionSummary(updated)
         case .stop:
             let newStop = try promptForDatetime("New value (YYYY-MM-DD HH:MM): ")
-            let updated = try ctx.sessionService.editSession(id: sessionId, newStart: nil, newStop: newStop, newDuration: nil)
+            let updated = try ctx.sessionService.update(id: sessionId, newStart: nil, newStop: newStop, newDuration: nil)
             printSessionSummary(updated)
         case .duration:
             let newDuration = try promptForDuration()
-            let updated = try ctx.sessionService.editSession(id: sessionId, newStart: nil, newStop: nil, newDuration: newDuration)
+            let updated = try ctx.sessionService.update(id: sessionId, newStart: nil, newStop: nil, newDuration: newDuration)
         }
     }
 
