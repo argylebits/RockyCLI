@@ -7,52 +7,19 @@ public struct SessionService: Sendable {
         self.repository = repository
     }
 
-    public func start(projectId: Int) throws {
+    public func create(projectId: Int) throws {
         _ = try repository.create(projectId: projectId, startTime: Date(), endTime: nil)
     }
 
-    public func hasRunningSession(projectId: Int) throws -> Bool {
-        let running = try repository.list(running: true, from: nil, to: nil, projectId: projectId)
-        return !running.isEmpty
-    }
-
-    public func stop(projectId: Int) throws -> Session {
-        let running = try repository.list(running: true, from: nil, to: nil, projectId: projectId)
-        guard let (session, _) = running.first else {
-            throw RockyCoreError.noRunningTimers
-        }
-        return try repository.update(id: session.id, startTime: session.startTime, endTime: Date())
-    }
-
-    public func stopAll() throws -> [Session] {
-        let running = try repository.list(running: true, from: nil, to: nil, projectId: nil)
-        let now = Date()
-        return try running.map { session, _ in
-            try repository.update(id: session.id, startTime: session.startTime, endTime: now)
-        }
-    }
-
-    public func getRunning() throws -> [Session] {
-        try repository.list(running: true, from: nil, to: nil, projectId: nil).map(\.0)
-    }
-
-    public func getRunningWithProjects() throws -> [(Session, Project)] {
-        try repository.list(running: true, from: nil, to: nil, projectId: nil)
-    }
-
-    public func insert(projectId: Int, startTime: Date, endTime: Date?) throws {
-        _ = try repository.create(projectId: projectId, startTime: startTime, endTime: endTime)
-    }
-
-    public func getSessions(from: Date, to: Date, projectId: Int? = nil) throws -> [(Session, Project)] {
-        try repository.list(running: nil, from: from, to: to, projectId: projectId)
-    }
-
-    public func getById(_ id: Int) throws -> Session? {
+    public func get(id: Int) throws -> Session? {
         try repository.get(id: id)
     }
 
-    public func editSession(
+    public func list(running: Bool? = nil, from: Date? = nil, to: Date? = nil, projectId: Int? = nil) throws -> [(Session, Project)] {
+        try repository.list(running: running, from: from, to: to, projectId: projectId)
+    }
+
+    public func update(
         id: Int,
         newStart: Date?,
         newStop: Date?,
