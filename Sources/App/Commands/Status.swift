@@ -39,7 +39,7 @@ struct Status: ParsableCommand {
         // Resolve project filter
         var projectId: Int? = nil
         if let projectName = project {
-            guard let proj = try ctx.projectService.getByName(projectName) else {
+            guard let proj = try ctx.projectService.get(name: projectName) else {
                 throw ValidationError("No project found with name \"\(projectName)\".")
             }
             projectId = proj.id

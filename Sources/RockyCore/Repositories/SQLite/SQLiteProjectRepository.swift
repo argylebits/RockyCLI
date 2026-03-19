@@ -8,11 +8,13 @@ public struct SQLiteProjectRepository: ProjectRepository, Sendable {
         self.db = db
     }
 
-    public func findOrCreate(name: String, slug: String) throws -> Project {
-        if let existing = try getBySlug(slug) {
-            return existing
-        }
-        return try db.dbQueue.write { db in
+    public func create(name: String, slug: String) throws -> Project {
+        try db.dbQueue.write { db in
+            if let _ = try Project.fetchOne(db,
+                sql: "SELECT * FROM projects WHERE slug = ?",
+                arguments: [slug]) {
+                throw RockyCoreError.projectAlreadyExists(name)
+            }
             try db.execute(
                 sql: "INSERT INTO projects (name, slug, created_at) VALUES (?, ?, ?)",
                 arguments: [name, slug, Date().iso8601String])
@@ -23,7 +25,15 @@ public struct SQLiteProjectRepository: ProjectRepository, Sendable {
         }
     }
 
-    public func getById(_ id: Int) throws -> Project? {
+    // Keep findOrCreate for backward compatibility with session-layer callers
+    public func findOrCreate(name: String, slug: String) throws -> Project {
+        if let existing = try get(slug: slug) {
+            return existing
+        }
+        return try create(name: name, slug: slug)
+    }
+
+    public func get(id: Int) throws -> Project? {
         try db.dbQueue.read { db in
             try Project.fetchOne(db,
                 sql: "SELECT * FROM projects WHERE id = ?",
@@ -31,7 +41,7 @@ public struct SQLiteProjectRepository: ProjectRepository, Sendable {
         }
     }
 
-    public func getBySlug(_ slug: String) throws -> Project? {
+    public func get(slug: String) throws -> Project? {
         try db.dbQueue.read { db in
             try Project.fetchOne(db,
                 sql: "SELECT * FROM projects WHERE slug = ?",
@@ -43,6 +53,25 @@ public struct SQLiteProjectRepository: ProjectRepository, Sendable {
         try db.dbQueue.read { db in
             try Project.fetchAll(db,
                 sql: "SELECT * FROM projects ORDER BY created_at ASC")
+        }
+    }
+
+    public func update(id: Int, name: String, slug: String) throws -> Project {
+        try db.dbQueue.write { db in
+            if let existing = try Project.fetchOne(db,
+                sql: "SELECT * FROM projects WHERE slug = ? AND id != ?",
+                arguments: [slug, id]) {
+                throw RockyCoreError.projectAlreadyExists(existing.name)
+            }
+            try db.execute(
+                sql: "UPDATE projects SET name = ?, slug = ? WHERE id = ?",
+                arguments: [name, slug, id])
+            guard let updated = try Project.fetchOne(db,
+                sql: "SELECT * FROM projects WHERE id = ?",
+                arguments: [id]) else {
+                throw RockyCoreError.projectNotFound(String(id))
+            }
+            return updated
         }
     }
 }

@@ -55,7 +55,7 @@ public final class MockSessionRepository: SessionRepository, @unchecked Sendable
     public func getRunningWithProjects() throws -> [(Session, Project)] {
         var results: [(Session, Project)] = []
         for session in sessions where session.isRunning {
-            if let project = try projectRepository.getById(session.projectId) {
+            if let project = try projectRepository.get(id:session.projectId) {
                 results.append((session, project))
             }
         }
@@ -89,7 +89,7 @@ public final class MockSessionRepository: SessionRepository, @unchecked Sendable
             let endTime = session.endTime ?? Date()
             let overlaps = session.startTime < to && endTime > from
             if overlaps {
-                if let project = try projectRepository.getById(session.projectId) {
+                if let project = try projectRepository.get(id:session.projectId) {
                     results.append((session, project))
                 }
             }

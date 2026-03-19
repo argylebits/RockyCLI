@@ -53,7 +53,7 @@ struct Edit: ParsableCommand {
     // MARK: - Interactive
 
     private func interactive(projectName: String, ctx: AppContext) throws {
-        guard let proj = try ctx.projectService.getByName(projectName) else {
+        guard let proj = try ctx.projectService.get(name: projectName) else {
             throw ValidationError("No project found with name \"\(projectName)\".")
         }
 

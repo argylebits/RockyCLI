@@ -12,7 +12,8 @@ struct Start: ParsableCommand {
     func run() throws {
         let ctx = try AppContext.build()
 
-        let proj = try ctx.projectService.findOrCreate(name: project)
+        let proj = try ctx.projectService.get(name: project)
+            ?? ctx.projectService.create(name: project)
 
         let autoStop = try ConfigFile.getBool("auto-stop", default: true)
         if autoStop, try ctx.sessionService.hasRunningSession(projectId: proj.id) {
