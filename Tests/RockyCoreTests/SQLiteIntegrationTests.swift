@@ -48,7 +48,7 @@ struct SQLiteIntegrationTests {
         let db = try makeTestDatabase()
         let repo = SQLiteProjectRepository(db: db)
         let created = try repo.findOrCreate(name: "round-trip-test", slug: "round-trip-test".slugified)
-        let found = try repo.getById(created.id)
+        let found = try repo.get(id: created.id)
         #expect(found != nil)
         #expect(found?.name == "round-trip-test")
         #expect(found?.id == created.id)
@@ -175,7 +175,7 @@ struct SQLiteIntegrationTests {
         let db = try makeTestDatabase()
         let repo = SQLiteProjectRepository(db: db)
         _ = try repo.findOrCreate(name: "MyProject", slug: "MyProject".slugified)
-        let found = try repo.getBySlug("myproject")
+        let found = try repo.get(slug: "myproject")
         #expect(found != nil)
         #expect(found?.name == "MyProject")
     }

@@ -70,7 +70,7 @@ struct Stop: ParsableCommand {
     }
 
     private func stopProject(name: String, ctx: AppContext) throws {
-        guard let proj = try ctx.projectService.getByName(name) else {
+        guard let proj = try ctx.projectService.get(name: name) else {
             throw ValidationError("No project found with name \"\(name)\".")
         }
         let stopped = try ctx.sessionService.stop(projectId: proj.id)
@@ -86,7 +86,7 @@ struct Stop: ParsableCommand {
 
         var entries: [(name: String, duration: String)] = []
         for session in stopped {
-            if let proj = try ctx.projectService.getById(session.projectId) {
+            if let proj = try ctx.projectService.get(id: session.projectId) {
                 entries.append((proj.name, DurationFormat.formatted(session.duration())))
             }
         }

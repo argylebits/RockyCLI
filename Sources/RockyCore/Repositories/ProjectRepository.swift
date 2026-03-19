@@ -1,8 +1,9 @@
 import Foundation
 
 public protocol ProjectRepository: Sendable {
-    func findOrCreate(name: String, slug: String) throws -> Project
-    func getById(_ id: Int) throws -> Project?
-    func getBySlug(_ slug: String) throws -> Project?
+    func create(name: String, slug: String) throws -> Project
+    func get(id: Int) throws -> Project?
+    func get(slug: String) throws -> Project?
     func list() throws -> [Project]
+    func update(id: Int, name: String, slug: String) throws -> Project
 }

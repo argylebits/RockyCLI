@@ -7,19 +7,30 @@ public struct ProjectService: Sendable {
         self.repository = repository
     }
 
-    public func findOrCreate(name: String) throws -> Project {
-        try repository.findOrCreate(name: name, slug: name.slugified)
+    public func create(name: String) throws -> Project {
+        try repository.create(name: name, slug: name.slugified)
     }
 
-    public func getById(_ id: Int) throws -> Project? {
-        try repository.getById(id)
+    public func get(id: Int) throws -> Project? {
+        try repository.get(id: id)
     }
 
-    public func getByName(_ name: String) throws -> Project? {
-        try repository.getBySlug(name.slugified)
+    public func get(name: String) throws -> Project? {
+        try repository.get(slug: name.slugified)
     }
 
     public func list() throws -> [Project] {
         try repository.list()
+    }
+
+    public func rename(oldName: String, newName: String) throws -> Project {
+        guard let project = try repository.get(slug: oldName.slugified) else {
+            throw RockyCoreError.projectNotFound(oldName)
+        }
+        let newSlug = newName.slugified
+        if let existing = try repository.get(slug: newSlug), existing.id != project.id {
+            throw RockyCoreError.projectAlreadyExists(newName)
+        }
+        return try repository.update(id: project.id, name: newName, slug: newSlug)
     }
 }
