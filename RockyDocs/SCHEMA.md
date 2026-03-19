@@ -12,7 +12,8 @@ SQLite database stored at `~/.rocky/rocky.db`. Create directory if it doesn't ex
 CREATE TABLE IF NOT EXISTS projects (
     id          INTEGER  PRIMARY KEY AUTOINCREMENT,
     parent_id   INTEGER  REFERENCES projects(id),
-    name        TEXT     NOT NULL UNIQUE,
+    name        TEXT     NOT NULL,
+    slug        TEXT     NOT NULL UNIQUE,
     created_at  DATETIME NOT NULL DEFAULT (datetime('now'))
 );
 ```
@@ -20,8 +21,10 @@ CREATE TABLE IF NOT EXISTS projects (
 **Notes:**
 - `parent_id` is NULL for top-level projects
 - Self-referencing FK enables subprojects (not used in v1 but schema supports it)
-- `name` must be unique — used as the primary identifier in CLI commands
-- Names are case-insensitive for lookup but stored as provided
+- `name` is the display name — stored exactly as provided by the user
+- `slug` is the normalized lookup key — generated via `String.slugified` (lowercase, non-alphanumeric replaced with hyphens, collapsed, trimmed)
+- All lookups and uniqueness enforcement use `slug` (exact match), not `name`
+- No `COLLATE NOCASE` — case insensitivity is handled by slugification
 
 ### sessions
 
@@ -61,3 +64,4 @@ CREATE TABLE IF NOT EXISTS migrations (
 ```
 
 Migration v1 creates `projects` and `sessions` tables.
+Migration v2 adds `slug` column to `projects` (table rebuild, existing names slugified).
