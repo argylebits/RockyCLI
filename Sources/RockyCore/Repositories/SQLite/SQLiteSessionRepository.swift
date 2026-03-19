@@ -71,7 +71,7 @@ public struct SQLiteSessionRepository: SessionRepository, Sendable {
         try db.dbQueue.read { db in
             let rows = try Row.fetchAll(db, sql: """
                 SELECT s.*, p.id AS p_id, p.parent_id AS p_parent_id,
-                       p.name AS p_name, p.created_at AS p_created_at
+                       p.name AS p_name, p.slug AS p_slug, p.created_at AS p_created_at
                 FROM sessions s
                 JOIN projects p ON s.project_id = p.id
                 WHERE s.end_time IS NULL
@@ -87,6 +87,7 @@ public struct SQLiteSessionRepository: SessionRepository, Sendable {
                     id: row["p_id"],
                     parentId: row["p_parent_id"],
                     name: row["p_name"],
+                    slug: row["p_slug"],
                     createdAt: pCreatedAt)
                 return (session, project)
             }
@@ -124,7 +125,7 @@ public struct SQLiteSessionRepository: SessionRepository, Sendable {
         try db.dbQueue.read { db in
             var sql = """
                 SELECT s.*, p.id AS p_id, p.parent_id AS p_parent_id,
-                       p.name AS p_name, p.created_at AS p_created_at
+                       p.name AS p_name, p.slug AS p_slug, p.created_at AS p_created_at
                 FROM sessions s
                 JOIN projects p ON s.project_id = p.id
                 WHERE (s.start_time < ? AND (s.end_time > ? OR s.end_time IS NULL))
@@ -148,6 +149,7 @@ public struct SQLiteSessionRepository: SessionRepository, Sendable {
                     id: row["p_id"],
                     parentId: row["p_parent_id"],
                     name: row["p_name"],
+                    slug: row["p_slug"],
                     createdAt: pCreatedAt)
                 return (session, project)
             }

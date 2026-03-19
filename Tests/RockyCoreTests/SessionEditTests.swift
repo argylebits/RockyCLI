@@ -27,7 +27,7 @@ struct SessionEditTests {
     @Test("edit with --start only updates start, keeps stop")
     func editStartOnly() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
         let all = try sessionRepo.getSessions(
@@ -47,7 +47,7 @@ struct SessionEditTests {
     @Test("edit with --stop only updates stop, keeps start")
     func editStopOnly() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
         let all = try sessionRepo.getSessions(
@@ -67,7 +67,7 @@ struct SessionEditTests {
     @Test("edit with --start + --stop updates both")
     func editStartAndStop() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
         let all = try sessionRepo.getSessions(
@@ -87,7 +87,7 @@ struct SessionEditTests {
     @Test("edit with --duration only keeps start, computes stop")
     func editDurationOnly() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
         let all = try sessionRepo.getSessions(
@@ -106,7 +106,7 @@ struct SessionEditTests {
     @Test("edit with --start + --duration sets start and computes stop")
     func editStartAndDuration() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
         let all = try sessionRepo.getSessions(
@@ -125,7 +125,7 @@ struct SessionEditTests {
     @Test("edit with --stop + --duration sets stop and computes start")
     func editStopAndDuration() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
         let all = try sessionRepo.getSessions(
@@ -144,7 +144,7 @@ struct SessionEditTests {
     @Test("edit with all three flags throws overdetermined")
     func editOverdetermined() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
         let all = try sessionRepo.getSessions(
@@ -173,7 +173,7 @@ struct SessionEditTests {
     @Test("edit stop of running session throws cannotEditRunningSessionStop")
     func editRunningStop() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         try sessionRepo.start(projectId: project.id)
 
         let running = try sessionRepo.getRunning()
@@ -187,7 +187,7 @@ struct SessionEditTests {
     @Test("edit start in future throws startTimeInFuture")
     func editFutureStart() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
         let all = try sessionRepo.getSessions(
@@ -206,7 +206,7 @@ struct SessionEditTests {
     @Test("edit with stop before start throws stopBeforeStart")
     func editStopBeforeStart() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
         let all = try sessionRepo.getSessions(
@@ -225,7 +225,7 @@ struct SessionEditTests {
     @Test("edit with zero duration throws durationNotPositive")
     func editZeroDuration() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
         let all = try sessionRepo.getSessions(
@@ -242,7 +242,7 @@ struct SessionEditTests {
     @Test("edit with negative duration throws durationNotPositive")
     func editNegativeDuration() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
         let all = try sessionRepo.getSessions(
@@ -259,7 +259,7 @@ struct SessionEditTests {
     @Test("edit start of running session is allowed")
     func editRunningStart() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         try sessionRepo.start(projectId: project.id)
 
         let running = try sessionRepo.getRunning()
@@ -275,7 +275,7 @@ struct SessionEditTests {
     @Test("edit session spanning midnight")
     func editMidnightSession() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 23, startDay: 5, endHour: 10, endDay: 6)
 
         let all = try sessionRepo.getSessions(

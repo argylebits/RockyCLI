@@ -9,7 +9,7 @@ struct MockProjectRepositoryTests {
     @Test("findOrCreate creates a new project")
     func createProject() throws {
         let repo = MockProjectRepository()
-        let project = try repo.findOrCreate(name: "acme-corp")
+        let project = try repo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
         #expect(project.name == "acme-corp")
         #expect(project.id > 0)
         #expect(project.parentId == nil)
@@ -18,31 +18,31 @@ struct MockProjectRepositoryTests {
     @Test("findOrCreate returns existing project on duplicate name")
     func findExisting() throws {
         let repo = MockProjectRepository()
-        let first = try repo.findOrCreate(name: "acme-corp")
-        let second = try repo.findOrCreate(name: "acme-corp")
+        let first = try repo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
+        let second = try repo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
         #expect(first.id == second.id)
     }
 
-    @Test("getByName is case-insensitive")
-    func caseInsensitive() throws {
+    @Test("getBySlug returns project by exact slug match")
+    func getBySlug() throws {
         let repo = MockProjectRepository()
-        _ = try repo.findOrCreate(name: "Acme-Corp")
-        let found = try repo.getByName("acme-corp")
+        _ = try repo.findOrCreate(name: "Acme-Corp", slug: "Acme-Corp".slugified)
+        let found = try repo.getBySlug("acme-corp")
         #expect(found != nil)
         #expect(found?.name == "Acme-Corp")
     }
 
-    @Test("getByName returns nil for unknown project")
-    func unknownProject() throws {
+    @Test("getBySlug returns nil for unknown slug")
+    func getBySlugUnknown() throws {
         let repo = MockProjectRepository()
-        let found = try repo.getByName("nonexistent")
+        let found = try repo.getBySlug("nonexistent")
         #expect(found == nil)
     }
 
     @Test("getById returns correct project")
     func getById() throws {
         let repo = MockProjectRepository()
-        let created = try repo.findOrCreate(name: "test-project")
+        let created = try repo.findOrCreate(name: "test-project", slug: "test-project".slugified)
         let found = try repo.getById(created.id)
         #expect(found != nil)
         #expect(found?.name == "test-project")
@@ -58,9 +58,9 @@ struct MockProjectRepositoryTests {
     @Test("list returns all projects")
     func listProjects() throws {
         let repo = MockProjectRepository()
-        _ = try repo.findOrCreate(name: "alpha")
-        _ = try repo.findOrCreate(name: "beta")
-        _ = try repo.findOrCreate(name: "gamma")
+        _ = try repo.findOrCreate(name: "alpha", slug: "alpha".slugified)
+        _ = try repo.findOrCreate(name: "beta", slug: "beta".slugified)
+        _ = try repo.findOrCreate(name: "gamma", slug: "gamma".slugified)
         let projects = try repo.list()
         #expect(projects.count == 3)
     }
@@ -68,8 +68,8 @@ struct MockProjectRepositoryTests {
     @Test("findOrCreate deduplicates case-insensitively")
     func findOrCreateCaseInsensitive() throws {
         let repo = MockProjectRepository()
-        let first = try repo.findOrCreate(name: "acme-corp")
-        let second = try repo.findOrCreate(name: "ACME-CORP")
+        let first = try repo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
+        let second = try repo.findOrCreate(name: "ACME-CORP", slug: "ACME-CORP".slugified)
         #expect(first.id == second.id)
         #expect(second.name == "acme-corp")
         let projects = try repo.list()
@@ -79,9 +79,9 @@ struct MockProjectRepositoryTests {
     @Test("list returns projects in creation order")
     func listOrder() throws {
         let repo = MockProjectRepository()
-        _ = try repo.findOrCreate(name: "charlie")
-        _ = try repo.findOrCreate(name: "alpha")
-        _ = try repo.findOrCreate(name: "bravo")
+        _ = try repo.findOrCreate(name: "charlie", slug: "charlie".slugified)
+        _ = try repo.findOrCreate(name: "alpha", slug: "alpha".slugified)
+        _ = try repo.findOrCreate(name: "bravo", slug: "bravo".slugified)
         let projects = try repo.list()
         #expect(projects[0].name == "charlie")
         #expect(projects[1].name == "alpha")
@@ -97,7 +97,7 @@ struct MockSessionRepositoryTests {
     func startSession() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let project = try projectRepo.findOrCreate(name: "acme-corp")
+        let project = try projectRepo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
         try sessionRepo.start(projectId: project.id)
         let running = try sessionRepo.getRunning()
         #expect(running.count == 1)
@@ -109,7 +109,7 @@ struct MockSessionRepositoryTests {
     func hasRunningFalse() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let project = try projectRepo.findOrCreate(name: "acme-corp")
+        let project = try projectRepo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
         #expect(try sessionRepo.hasRunningSession(projectId: project.id) == false)
     }
 
@@ -117,7 +117,7 @@ struct MockSessionRepositoryTests {
     func hasRunningTrue() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let project = try projectRepo.findOrCreate(name: "acme-corp")
+        let project = try projectRepo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
         try sessionRepo.start(projectId: project.id)
         #expect(try sessionRepo.hasRunningSession(projectId: project.id) == true)
     }
@@ -126,7 +126,7 @@ struct MockSessionRepositoryTests {
     func stopSession() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let project = try projectRepo.findOrCreate(name: "acme-corp")
+        let project = try projectRepo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
         try sessionRepo.start(projectId: project.id)
         let stopped = try sessionRepo.stop(projectId: project.id)
         #expect(stopped.endTime != nil)
@@ -139,7 +139,7 @@ struct MockSessionRepositoryTests {
     func stopNoRunning() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let project = try projectRepo.findOrCreate(name: "acme-corp")
+        let project = try projectRepo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
         #expect(throws: RockyCoreError.self) {
             try sessionRepo.stop(projectId: project.id)
         }
@@ -149,8 +149,8 @@ struct MockSessionRepositoryTests {
     func stopAll() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let p1 = try projectRepo.findOrCreate(name: "project-1")
-        let p2 = try projectRepo.findOrCreate(name: "project-2")
+        let p1 = try projectRepo.findOrCreate(name: "project-1", slug: "project-1".slugified)
+        let p2 = try projectRepo.findOrCreate(name: "project-2", slug: "project-2".slugified)
         try sessionRepo.start(projectId: p1.id)
         try sessionRepo.start(projectId: p2.id)
         let stopped = try sessionRepo.stopAll()
@@ -172,8 +172,8 @@ struct MockSessionRepositoryTests {
     func concurrentTimers() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let p1 = try projectRepo.findOrCreate(name: "project-1")
-        let p2 = try projectRepo.findOrCreate(name: "project-2")
+        let p1 = try projectRepo.findOrCreate(name: "project-1", slug: "project-1".slugified)
+        let p2 = try projectRepo.findOrCreate(name: "project-2", slug: "project-2".slugified)
         try sessionRepo.start(projectId: p1.id)
         try sessionRepo.start(projectId: p2.id)
         let running = try sessionRepo.getRunning()
@@ -184,8 +184,8 @@ struct MockSessionRepositoryTests {
     func stopOneOfTwo() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let p1 = try projectRepo.findOrCreate(name: "project-1")
-        let p2 = try projectRepo.findOrCreate(name: "project-2")
+        let p1 = try projectRepo.findOrCreate(name: "project-1", slug: "project-1".slugified)
+        let p2 = try projectRepo.findOrCreate(name: "project-2", slug: "project-2".slugified)
         try sessionRepo.start(projectId: p1.id)
         try sessionRepo.start(projectId: p2.id)
         _ = try sessionRepo.stop(projectId: p1.id)
@@ -198,7 +198,7 @@ struct MockSessionRepositoryTests {
     func runningWithProjects() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let project = try projectRepo.findOrCreate(name: "acme-corp")
+        let project = try projectRepo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
         try sessionRepo.start(projectId: project.id)
         let running = try sessionRepo.getRunningWithProjects()
         #expect(running.count == 1)
@@ -211,7 +211,7 @@ struct MockSessionRepositoryTests {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
         let cal = Calendar.current
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         let start = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!
         let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
         try sessionRepo.insert(projectId: project.id, startTime: start, endTime: end)
@@ -229,7 +229,7 @@ struct MockSessionRepositoryTests {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
         let cal = Calendar.current
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
 
         // Fully inside range
         try sessionRepo.insert(projectId: project.id,
@@ -256,7 +256,7 @@ struct MockSessionRepositoryTests {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
         let cal = Calendar.current
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
 
         try sessionRepo.insert(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 1, hour: 10))!,
@@ -273,8 +273,8 @@ struct MockSessionRepositoryTests {
     func stopAllLeavesStoppedAlone() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let p1 = try projectRepo.findOrCreate(name: "already-stopped")
-        let p2 = try projectRepo.findOrCreate(name: "still-running")
+        let p1 = try projectRepo.findOrCreate(name: "already-stopped", slug: "already-stopped".slugified)
+        let p2 = try projectRepo.findOrCreate(name: "still-running", slug: "still-running".slugified)
         try sessionRepo.start(projectId: p1.id)
         _ = try sessionRepo.stop(projectId: p1.id)
         try sessionRepo.start(projectId: p2.id)
@@ -288,8 +288,8 @@ struct MockSessionRepositoryTests {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
         let cal = Calendar.current
-        let p1 = try projectRepo.findOrCreate(name: "included")
-        let p2 = try projectRepo.findOrCreate(name: "excluded")
+        let p1 = try projectRepo.findOrCreate(name: "included", slug: "included".slugified)
+        let p2 = try projectRepo.findOrCreate(name: "excluded", slug: "excluded".slugified)
 
         try sessionRepo.insert(projectId: p1.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!,
@@ -315,7 +315,7 @@ struct MockSessionEditTests {
     func getById() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         let cal = Calendar.current
         let start = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!
         let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
@@ -342,7 +342,7 @@ struct MockSessionEditTests {
     func update() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         let cal = Calendar.current
         let start = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!
         let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!

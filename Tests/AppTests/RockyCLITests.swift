@@ -7,13 +7,15 @@ import Testing
 struct TableAlignmentTests {
     @Test("active and inactive rows have same column alignment")
     func indicatorWidthConsistency() {
+        let name1 = "acme-corp"
+        let name2 = "side-project"
         let statuses = [
             ProjectStatus(
-                project: Project(id: 1, parentId: nil, name: "acme-corp", createdAt: Date()),
+                project: Project(id: 1, parentId: nil, name: name1, slug: name1.slugified, createdAt: Date()),
                 runningSession: Session(id: 1, projectId: 1, startTime: Date().addingTimeInterval(-3600), endTime: nil)
             ),
             ProjectStatus(
-                project: Project(id: 2, parentId: nil, name: "side-project", createdAt: Date()),
+                project: Project(id: 2, parentId: nil, name: name2, slug: name2.slugified, createdAt: Date()),
                 runningSession: nil
             ),
         ]

@@ -23,6 +23,12 @@ public final class Database: Sendable {
         return database
     }
 
+    public static func fromQueue(_ dbQueue: DatabaseQueue) throws -> Database {
+        let database = Database(dbQueue: dbQueue)
+        try Migrations.run(on: database)
+        return database
+    }
+
     public static func inMemory(trace: (@Sendable (String) -> Void)? = nil) throws -> Database {
         let database = Database(dbQueue: try DatabaseQueue(configuration: makeConfig(trace: trace)))
         try Migrations.run(on: database)
