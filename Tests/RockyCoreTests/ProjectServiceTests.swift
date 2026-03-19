@@ -89,20 +89,16 @@ struct ProjectServiceTests {
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
         let service = ProjectService(repository: projectRepo)
         let project = try projectRepo.create(name: "acme-corp", slug: "acme-corp".slugified)
-        try sessionRepo.start(projectId: project.id)
-        _ = try sessionRepo.stop(projectId: project.id)
-        try sessionRepo.start(projectId: project.id)
+        _ = try sessionRepo.create(projectId: project.id, startTime: Date().addingTimeInterval(-7200), endTime: Date().addingTimeInterval(-3600))
+        _ = try sessionRepo.create(projectId: project.id, startTime: Date(), endTime: nil)
 
         let renamed = try service.rename(oldName: "acme-corp", newName: "new-acme")
 
-        let running = try sessionRepo.getRunning()
+        let running = try sessionRepo.list(running: true, from: nil, to: nil, projectId: nil)
         #expect(running.count == 1)
-        #expect(running[0].projectId == renamed.id)
+        #expect(running[0].0.projectId == renamed.id)
 
-        let cal = Calendar.current
-        let from = cal.date(from: DateComponents(year: 2020, month: 1, day: 1))!
-        let to = cal.date(from: DateComponents(year: 2030, month: 1, day: 1))!
-        let sessions = try sessionRepo.getSessions(from: from, to: to, projectId: renamed.id)
+        let sessions = try sessionRepo.list(running: nil, from: nil, to: nil, projectId: renamed.id)
         #expect(sessions.count == 2)
     }
 }

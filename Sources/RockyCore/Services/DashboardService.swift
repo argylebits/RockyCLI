@@ -23,15 +23,15 @@ public struct DashboardService: Sendable {
 
         // Fetch sessions for recent range (covers summaries, heatmap, sparkline, peak hours, distribution)
         let earliestNeeded = [heatmapStart, thisYearStart, lastMonthStart, lastWeekStart].min()!
-        let recentSessions = try sessionRepository.getSessions(from: earliestNeeded, to: now, projectId: nil)
+        let recentSessions = try sessionRepository.list(running: nil,from: earliestNeeded, to: now, projectId: nil)
 
         // Fetch full history for streaks and all-time stats
-        let allSessions = try sessionRepository.getSessions(
+        let allSessions = try sessionRepository.list(running: nil,
             from: Date(timeIntervalSince1970: 0), to: now, projectId: nil
         )
 
         // Running timers
-        let runningPairs = try sessionRepository.getRunningWithProjects()
+        let runningPairs = try sessionRepository.list(running: true, from: nil, to: nil, projectId: nil)
         let runningTimers = runningPairs.map { session, project in
             RunningTimer(projectName: project.name, duration: session.duration(at: now))
         }
