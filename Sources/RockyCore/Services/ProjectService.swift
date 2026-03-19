@@ -8,7 +8,7 @@ public struct ProjectService: Sendable {
     }
 
     public func findOrCreate(name: String) throws -> Project {
-        try repository.findOrCreate(name: name)
+        try repository.findOrCreate(name: name, slug: name.slugified)
     }
 
     public func getById(_ id: Int) throws -> Project? {
@@ -16,7 +16,7 @@ public struct ProjectService: Sendable {
     }
 
     public func getByName(_ name: String) throws -> Project? {
-        try repository.getByName(name)
+        try repository.getBySlug(name.slugified)
     }
 
     public func list() throws -> [Project] {

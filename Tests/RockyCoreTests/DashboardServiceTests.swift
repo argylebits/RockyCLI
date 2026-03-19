@@ -36,7 +36,7 @@ struct DashboardServiceTests {
     @Test("totalHours sums all session durations")
     func totalHours() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
 
         // Two 2-hour sessions
         try sessionRepo.insert(
@@ -59,7 +59,7 @@ struct DashboardServiceTests {
     @Test("sessionsThisWeek counts sessions overlapping current week")
     func sessionsThisWeek() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
 
         // Week of Mar 9 (Monday) - Mar 11 is Wednesday
         // Session in this week
@@ -89,7 +89,7 @@ struct DashboardServiceTests {
     @Test("dailyAvgWeek divides week total by days elapsed")
     func dailyAvgWeek() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
 
         // Mon Mar 9: 3 hours, Tue Mar 10: 3 hours = 6 hours over 2 days
         try sessionRepo.insert(
@@ -114,8 +114,8 @@ struct DashboardServiceTests {
     @Test("topProject returns project with most all-time hours")
     func topProject() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let p1 = try projectRepo.findOrCreate(name: "Rocky")
-        let p2 = try projectRepo.findOrCreate(name: "Other")
+        let p1 = try projectRepo.findOrCreate(name: "Rocky", slug: "Rocky".slugified)
+        let p2 = try projectRepo.findOrCreate(name: "Other", slug: "Other".slugified)
 
         // Rocky: 5 hours
         try sessionRepo.insert(
@@ -139,7 +139,7 @@ struct DashboardServiceTests {
     @Test("bestDayThisWeek returns weekday with most hours")
     func bestDayThisWeek() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
 
         // Mon Mar 9: 1 hour
         try sessionRepo.insert(
@@ -182,7 +182,7 @@ struct DashboardServiceTests {
     @Test("running session included in sessionsThisWeek")
     func runningSessionCountedInWeek() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
 
         let now = Date()
 
@@ -207,7 +207,7 @@ struct DashboardServiceTests {
     @Test("streak calculation with consecutive days")
     func streakCalculation() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test")
+        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
 
         // 3 consecutive days: Mar 9, 10, 11
         for day in 9...11 {

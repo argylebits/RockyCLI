@@ -8,14 +8,14 @@ public struct SQLiteProjectRepository: ProjectRepository, Sendable {
         self.db = db
     }
 
-    public func findOrCreate(name: String) throws -> Project {
-        if let existing = try getByName(name) {
+    public func findOrCreate(name: String, slug: String) throws -> Project {
+        if let existing = try getBySlug(slug) {
             return existing
         }
         return try db.dbQueue.write { db in
             try db.execute(
-                sql: "INSERT INTO projects (name, created_at) VALUES (?, ?)",
-                arguments: [name, Date().iso8601String])
+                sql: "INSERT INTO projects (name, slug, created_at) VALUES (?, ?, ?)",
+                arguments: [name, slug, Date().iso8601String])
             let id = db.lastInsertedRowID
             return try Project.fetchOne(db,
                 sql: "SELECT * FROM projects WHERE id = ?",
@@ -31,11 +31,11 @@ public struct SQLiteProjectRepository: ProjectRepository, Sendable {
         }
     }
 
-    public func getByName(_ name: String) throws -> Project? {
+    public func getBySlug(_ slug: String) throws -> Project? {
         try db.dbQueue.read { db in
             try Project.fetchOne(db,
-                sql: "SELECT * FROM projects WHERE name = ? COLLATE NOCASE",
-                arguments: [name])
+                sql: "SELECT * FROM projects WHERE slug = ?",
+                arguments: [slug])
         }
     }
 
