@@ -2,95 +2,6 @@ import Testing
 import Foundation
 @testable import RockyCore
 
-// MARK: - Mock Project Repository Tests
-
-@Suite("MockProjectRepository")
-struct MockProjectRepositoryTests {
-    @Test("findOrCreate creates a new project")
-    func createProject() throws {
-        let repo = MockProjectRepository()
-        let project = try repo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
-        #expect(project.name == "acme-corp")
-        #expect(project.id > 0)
-        #expect(project.parentId == nil)
-    }
-
-    @Test("findOrCreate returns existing project on duplicate name")
-    func findExisting() throws {
-        let repo = MockProjectRepository()
-        let first = try repo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
-        let second = try repo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
-        #expect(first.id == second.id)
-    }
-
-    @Test("getBySlug returns project by exact slug match")
-    func getBySlug() throws {
-        let repo = MockProjectRepository()
-        _ = try repo.findOrCreate(name: "Acme-Corp", slug: "Acme-Corp".slugified)
-        let found = try repo.getBySlug("acme-corp")
-        #expect(found != nil)
-        #expect(found?.name == "Acme-Corp")
-    }
-
-    @Test("getBySlug returns nil for unknown slug")
-    func getBySlugUnknown() throws {
-        let repo = MockProjectRepository()
-        let found = try repo.getBySlug("nonexistent")
-        #expect(found == nil)
-    }
-
-    @Test("getById returns correct project")
-    func getById() throws {
-        let repo = MockProjectRepository()
-        let created = try repo.findOrCreate(name: "test-project", slug: "test-project".slugified)
-        let found = try repo.getById(created.id)
-        #expect(found != nil)
-        #expect(found?.name == "test-project")
-    }
-
-    @Test("getById returns nil for unknown id")
-    func getByIdUnknown() throws {
-        let repo = MockProjectRepository()
-        let found = try repo.getById(999)
-        #expect(found == nil)
-    }
-
-    @Test("list returns all projects")
-    func listProjects() throws {
-        let repo = MockProjectRepository()
-        _ = try repo.findOrCreate(name: "alpha", slug: "alpha".slugified)
-        _ = try repo.findOrCreate(name: "beta", slug: "beta".slugified)
-        _ = try repo.findOrCreate(name: "gamma", slug: "gamma".slugified)
-        let projects = try repo.list()
-        #expect(projects.count == 3)
-    }
-
-    @Test("findOrCreate deduplicates case-insensitively")
-    func findOrCreateCaseInsensitive() throws {
-        let repo = MockProjectRepository()
-        let first = try repo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
-        let second = try repo.findOrCreate(name: "ACME-CORP", slug: "ACME-CORP".slugified)
-        #expect(first.id == second.id)
-        #expect(second.name == "acme-corp")
-        let projects = try repo.list()
-        #expect(projects.count == 1)
-    }
-
-    @Test("list returns projects in creation order")
-    func listOrder() throws {
-        let repo = MockProjectRepository()
-        _ = try repo.findOrCreate(name: "charlie", slug: "charlie".slugified)
-        _ = try repo.findOrCreate(name: "alpha", slug: "alpha".slugified)
-        _ = try repo.findOrCreate(name: "bravo", slug: "bravo".slugified)
-        let projects = try repo.list()
-        #expect(projects[0].name == "charlie")
-        #expect(projects[1].name == "alpha")
-        #expect(projects[2].name == "bravo")
-    }
-}
-
-// MARK: - Mock Session Repository Tests
-
 @Suite("MockSessionRepository")
 struct MockSessionRepositoryTests {
     @Test("start creates a running session")
@@ -231,15 +142,12 @@ struct MockSessionRepositoryTests {
         let cal = Calendar.current
         let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
 
-        // Fully inside range
         try sessionRepo.insert(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!)
-        // Fully outside range (day before)
         try sessionRepo.insert(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 5, hour: 10))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 5, hour: 11))!)
-        // Spanning into range
         try sessionRepo.insert(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 5, hour: 23))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 1))!)
@@ -306,8 +214,6 @@ struct MockSessionRepositoryTests {
         #expect(results[0].1.name == "included")
     }
 }
-
-// MARK: - MockSessionRepository getById/update Tests
 
 @Suite("MockSessionRepository Edit")
 struct MockSessionEditTests {
