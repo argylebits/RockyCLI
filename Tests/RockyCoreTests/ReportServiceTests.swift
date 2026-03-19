@@ -21,7 +21,7 @@ struct ReportServiceTests {
     @Test("allProjectsWithStatus shows idle projects with no sessions")
     func statusNoSessions() throws {
         let (projectRepo, _, reportService) = makeServices()
-        _ = try projectRepo.findOrCreate(name: "idle-project", slug: "idle-project".slugified)
+        _ = try projectRepo.create(name: "idle-project", slug: "idle-project".slugified)
         let statuses = try reportService.allProjectsWithStatus()
         #expect(statuses.count == 1)
         #expect(!statuses[0].isRunning)
@@ -31,11 +31,11 @@ struct ReportServiceTests {
     @Test("allProjectsWithStatus shows running projects first")
     func statusOrder() throws {
         let (projectRepo, sessionRepo, reportService) = makeServices()
-        let p1 = try projectRepo.findOrCreate(name: "inactive", slug: "inactive".slugified)
-        let p2 = try projectRepo.findOrCreate(name: "active", slug: "active".slugified)
-        try sessionRepo.start(projectId: p1.id)
-        _ = try sessionRepo.stop(projectId: p1.id)
-        try sessionRepo.start(projectId: p2.id)
+        let p1 = try projectRepo.create(name: "inactive", slug: "inactive".slugified)
+        let p2 = try projectRepo.create(name: "active", slug: "active".slugified)
+        let s1 = try sessionRepo.create(projectId: p1.id, startTime: Date().addingTimeInterval(-7200), endTime: nil)
+        _ = try sessionRepo.update(id: s1.id, startTime: s1.startTime, endTime: Date().addingTimeInterval(-3600))
+        _ = try sessionRepo.create(projectId: p2.id, startTime: Date(), endTime: nil)
 
         let statuses = try reportService.allProjectsWithStatus()
         #expect(statuses.count == 2)
@@ -49,9 +49,9 @@ struct ReportServiceTests {
     func totals() throws {
         let (projectRepo, sessionRepo, reportService) = makeServices()
         let cal = Calendar.current
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
 
-        try sessionRepo.insert(projectId: project.id,
+        _ = try sessionRepo.create(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 8))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 9))!)
 
@@ -68,13 +68,13 @@ struct ReportServiceTests {
     func totalsFiltered() throws {
         let (projectRepo, sessionRepo, reportService) = makeServices()
         let cal = Calendar.current
-        let p1 = try projectRepo.findOrCreate(name: "included", slug: "included".slugified)
-        let p2 = try projectRepo.findOrCreate(name: "excluded", slug: "excluded".slugified)
+        let p1 = try projectRepo.create(name: "included", slug: "included".slugified)
+        let p2 = try projectRepo.create(name: "excluded", slug: "excluded".slugified)
 
-        try sessionRepo.insert(projectId: p1.id,
+        _ = try sessionRepo.create(projectId: p1.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 8))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 9))!)
-        try sessionRepo.insert(projectId: p2.id,
+        _ = try sessionRepo.create(projectId: p2.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!)
 
@@ -90,12 +90,12 @@ struct ReportServiceTests {
     func totalsSumMultiple() throws {
         let (projectRepo, sessionRepo, reportService) = makeServices()
         let cal = Calendar.current
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
 
-        try sessionRepo.insert(projectId: project.id,
+        _ = try sessionRepo.create(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 8))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 9))!)
-        try sessionRepo.insert(projectId: project.id,
+        _ = try sessionRepo.create(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 14))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 15))!)
 
@@ -122,11 +122,11 @@ struct ReportServiceTests {
     func totalsRunningSession() throws {
         let (projectRepo, sessionRepo, reportService) = makeServices()
         let cal = Calendar.current
-        let project = try projectRepo.findOrCreate(name: "running", slug: "running".slugified)
+        let project = try projectRepo.create(name: "running", slug: "running".slugified)
 
         // Insert a running session (no endTime) that started 2 hours ago
         let startTime = Date().addingTimeInterval(-7200)
-        try sessionRepo.insert(projectId: project.id, startTime: startTime, endTime: nil)
+        _ = try sessionRepo.create(projectId: project.id, startTime: startTime, endTime: nil)
 
         let from = cal.startOfDay(for: Date())
         let to = cal.date(byAdding: .day, value: 1, to: from)!
@@ -141,9 +141,9 @@ struct ReportServiceTests {
     func partialOverlap() throws {
         let (projectRepo, sessionRepo, reportService) = makeServices()
         let cal = Calendar.current
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
 
-        try sessionRepo.insert(projectId: project.id,
+        _ = try sessionRepo.create(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 5, hour: 22))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 2))!)
 
@@ -159,12 +159,12 @@ struct ReportServiceTests {
     func groupedByDay() throws {
         let (projectRepo, sessionRepo, reportService) = makeServices()
         let cal = Calendar.current
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
 
-        try sessionRepo.insert(projectId: project.id,
+        _ = try sessionRepo.create(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 2, hour: 10))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 2, hour: 12))!)
-        try sessionRepo.insert(projectId: project.id,
+        _ = try sessionRepo.create(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 4, hour: 9))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 4, hour: 10))!)
 
@@ -183,9 +183,9 @@ struct ReportServiceTests {
     func sessionSpanningMidnight() throws {
         let (projectRepo, sessionRepo, reportService) = makeServices()
         let cal = Calendar.current
-        let project = try projectRepo.findOrCreate(name: "late-night", slug: "late-night".slugified)
+        let project = try projectRepo.create(name: "late-night", slug: "late-night".slugified)
 
-        try sessionRepo.insert(projectId: project.id,
+        _ = try sessionRepo.create(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 2, hour: 23))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 3, hour: 1))!)
 
@@ -202,12 +202,12 @@ struct ReportServiceTests {
     func groupedByWeek() throws {
         let (projectRepo, sessionRepo, reportService) = makeServices()
         let cal = Calendar.current
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
 
-        try sessionRepo.insert(projectId: project.id,
+        _ = try sessionRepo.create(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 2, hour: 10))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 2, hour: 11))!)
-        try sessionRepo.insert(projectId: project.id,
+        _ = try sessionRepo.create(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 10, hour: 10))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 10, hour: 11))!)
 
@@ -224,12 +224,12 @@ struct ReportServiceTests {
     func groupedByMonth() throws {
         let (projectRepo, sessionRepo, reportService) = makeServices()
         let cal = Calendar.current
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
 
-        try sessionRepo.insert(projectId: project.id,
+        _ = try sessionRepo.create(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 1, day: 15, hour: 10))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 1, day: 15, hour: 12))!)
-        try sessionRepo.insert(projectId: project.id,
+        _ = try sessionRepo.create(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 1, hour: 9))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 1, hour: 10))!)
 
@@ -248,12 +248,12 @@ struct ReportServiceTests {
     func verboseSessions() throws {
         let (projectRepo, sessionRepo, reportService) = makeServices()
         let cal = Calendar.current
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
 
-        try sessionRepo.insert(projectId: project.id,
+        _ = try sessionRepo.create(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 8))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 9))!)
-        try sessionRepo.insert(projectId: project.id,
+        _ = try sessionRepo.create(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 14))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 15))!)
 
@@ -271,13 +271,13 @@ struct ReportServiceTests {
     func multipleProjectsGrouped() throws {
         let (projectRepo, sessionRepo, reportService) = makeServices()
         let cal = Calendar.current
-        let p1 = try projectRepo.findOrCreate(name: "alpha", slug: "alpha".slugified)
-        let p2 = try projectRepo.findOrCreate(name: "beta", slug: "beta".slugified)
+        let p1 = try projectRepo.create(name: "alpha", slug: "alpha".slugified)
+        let p2 = try projectRepo.create(name: "beta", slug: "beta".slugified)
 
-        try sessionRepo.insert(projectId: p1.id,
+        _ = try sessionRepo.create(projectId: p1.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 2, hour: 10))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 2, hour: 13))!)
-        try sessionRepo.insert(projectId: p2.id,
+        _ = try sessionRepo.create(projectId: p2.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 2, hour: 9))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 2, hour: 10))!)
 

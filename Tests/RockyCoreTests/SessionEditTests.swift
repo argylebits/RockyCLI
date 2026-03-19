@@ -21,18 +21,19 @@ struct SessionEditTests {
     ) throws {
         let start = cal.date(from: DateComponents(year: 2026, month: 3, day: startDay, hour: startHour))!
         let end = cal.date(from: DateComponents(year: 2026, month: 3, day: endDay, hour: endHour))!
-        try sessionRepo.insert(projectId: projectId, startTime: start, endTime: end)
+        _ = try sessionRepo.create(projectId: projectId, startTime: start, endTime: end)
     }
 
     @Test("edit with --start only updates start, keeps stop")
     func editStartOnly() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
-        let all = try sessionRepo.getSessions(
+        let all = try sessionRepo.list(running: nil,
             from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
-            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!,
+            projectId: nil
         )
         let sessionId = all[0].0.id
         let originalEnd = all[0].0.endTime!
@@ -47,12 +48,13 @@ struct SessionEditTests {
     @Test("edit with --stop only updates stop, keeps start")
     func editStopOnly() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
-        let all = try sessionRepo.getSessions(
+        let all = try sessionRepo.list(running: nil,
             from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
-            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!,
+            projectId: nil
         )
         let sessionId = all[0].0.id
         let originalStart = all[0].0.startTime
@@ -67,12 +69,13 @@ struct SessionEditTests {
     @Test("edit with --start + --stop updates both")
     func editStartAndStop() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
-        let all = try sessionRepo.getSessions(
+        let all = try sessionRepo.list(running: nil,
             from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
-            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!,
+            projectId: nil
         )
         let sessionId = all[0].0.id
 
@@ -87,12 +90,13 @@ struct SessionEditTests {
     @Test("edit with --duration only keeps start, computes stop")
     func editDurationOnly() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
-        let all = try sessionRepo.getSessions(
+        let all = try sessionRepo.list(running: nil,
             from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
-            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!,
+            projectId: nil
         )
         let sessionId = all[0].0.id
         let originalStart = all[0].0.startTime
@@ -106,12 +110,13 @@ struct SessionEditTests {
     @Test("edit with --start + --duration sets start and computes stop")
     func editStartAndDuration() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
-        let all = try sessionRepo.getSessions(
+        let all = try sessionRepo.list(running: nil,
             from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
-            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!,
+            projectId: nil
         )
         let sessionId = all[0].0.id
 
@@ -125,12 +130,13 @@ struct SessionEditTests {
     @Test("edit with --stop + --duration sets stop and computes start")
     func editStopAndDuration() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
-        let all = try sessionRepo.getSessions(
+        let all = try sessionRepo.list(running: nil,
             from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
-            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!,
+            projectId: nil
         )
         let sessionId = all[0].0.id
 
@@ -144,12 +150,13 @@ struct SessionEditTests {
     @Test("edit with all three flags throws overdetermined")
     func editOverdetermined() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
-        let all = try sessionRepo.getSessions(
+        let all = try sessionRepo.list(running: nil,
             from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
-            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!,
+            projectId: nil
         )
         let sessionId = all[0].0.id
 
@@ -173,11 +180,9 @@ struct SessionEditTests {
     @Test("edit stop of running session throws cannotEditRunningSessionStop")
     func editRunningStop() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
-        try sessionRepo.start(projectId: project.id)
-
-        let running = try sessionRepo.getRunning()
-        let sessionId = running[0].id
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
+        let created = try sessionRepo.create(projectId: project.id, startTime: Date(), endTime: nil)
+        let sessionId = created.id
 
         #expect(throws: RockyCoreError.self) {
             try service.editSession(id: sessionId, newStart: nil, newStop: Date(), newDuration: nil)
@@ -187,12 +192,13 @@ struct SessionEditTests {
     @Test("edit start in future throws startTimeInFuture")
     func editFutureStart() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
-        let all = try sessionRepo.getSessions(
+        let all = try sessionRepo.list(running: nil,
             from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
-            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!,
+            projectId: nil
         )
         let sessionId = all[0].0.id
 
@@ -206,12 +212,13 @@ struct SessionEditTests {
     @Test("edit with stop before start throws stopBeforeStart")
     func editStopBeforeStart() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
-        let all = try sessionRepo.getSessions(
+        let all = try sessionRepo.list(running: nil,
             from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
-            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!,
+            projectId: nil
         )
         let sessionId = all[0].0.id
 
@@ -225,12 +232,13 @@ struct SessionEditTests {
     @Test("edit with zero duration throws durationNotPositive")
     func editZeroDuration() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
-        let all = try sessionRepo.getSessions(
+        let all = try sessionRepo.list(running: nil,
             from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
-            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!,
+            projectId: nil
         )
         let sessionId = all[0].0.id
 
@@ -242,12 +250,13 @@ struct SessionEditTests {
     @Test("edit with negative duration throws durationNotPositive")
     func editNegativeDuration() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 10, endHour: 12)
 
-        let all = try sessionRepo.getSessions(
+        let all = try sessionRepo.list(running: nil,
             from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
-            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!,
+            projectId: nil
         )
         let sessionId = all[0].0.id
 
@@ -259,11 +268,9 @@ struct SessionEditTests {
     @Test("edit start of running session is allowed")
     func editRunningStart() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
-        try sessionRepo.start(projectId: project.id)
-
-        let running = try sessionRepo.getRunning()
-        let sessionId = running[0].id
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
+        let created = try sessionRepo.create(projectId: project.id, startTime: Date(), endTime: nil)
+        let sessionId = created.id
 
         let newStart = Date().addingTimeInterval(-7200)
         let updated = try service.editSession(id: sessionId, newStart: newStart, newStop: nil, newDuration: nil)
@@ -275,12 +282,13 @@ struct SessionEditTests {
     @Test("edit session spanning midnight")
     func editMidnightSession() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
         try insertSession(sessionRepo, projectId: project.id, startHour: 23, startDay: 5, endHour: 10, endDay: 6)
 
-        let all = try sessionRepo.getSessions(
+        let all = try sessionRepo.list(running: nil,
             from: cal.date(from: DateComponents(year: 2026, month: 3, day: 5))!,
-            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
+            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!,
+            projectId: nil
         )
         let sessionId = all[0].0.id
 

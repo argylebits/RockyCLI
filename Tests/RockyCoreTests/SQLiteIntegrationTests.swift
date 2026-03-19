@@ -64,11 +64,11 @@ struct SQLiteIntegrationTests {
 
         let startTime = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!
         let endTime = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
-        try sessionRepo.insert(projectId: project.id, startTime: startTime, endTime: endTime)
+        _ = try sessionRepo.create(projectId: project.id, startTime: startTime, endTime: endTime)
 
         let from = cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!
         let to = cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
-        let results = try sessionRepo.getSessions(from: from, to: to)
+        let results = try sessionRepo.list(running: nil, from: from, to: to, projectId: nil)
 
         #expect(results.count == 1)
         #expect(abs(results[0].0.startTime.timeIntervalSince(startTime)) < 1)
@@ -81,17 +81,17 @@ struct SQLiteIntegrationTests {
         let projectRepo = SQLiteProjectRepository(db: db)
         let sessionRepo = SQLiteSessionRepository(db: db)
         let project = try projectRepo.findOrCreate(name: "start-stop-test", slug: "start-stop-test".slugified)
-        try sessionRepo.start(projectId: project.id)
+        let created = try sessionRepo.create(projectId: project.id, startTime: Date(), endTime: nil)
 
-        let running = try sessionRepo.getRunning()
+        let running = try sessionRepo.list(running: true, from: nil, to: nil, projectId: nil)
         #expect(running.count == 1)
-        #expect(running[0].isRunning)
+        #expect(running[0].0.isRunning)
 
-        let stopped = try sessionRepo.stop(projectId: project.id)
+        let stopped = try sessionRepo.update(id: created.id, startTime: created.startTime, endTime: Date())
         #expect(!stopped.isRunning)
         #expect(stopped.endTime != nil)
 
-        let afterStop = try sessionRepo.getRunning()
+        let afterStop = try sessionRepo.list(running: true, from: nil, to: nil, projectId: nil)
         #expect(afterStop.isEmpty)
     }
 
@@ -164,7 +164,7 @@ struct SQLiteIntegrationTests {
         let cal = Calendar.current
         let from = cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!
         let to = cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
-        let sessions = try sessionRepo.getSessions(from: from, to: to)
+        let sessions = try sessionRepo.list(running: nil, from: from, to: to, projectId: nil)
         #expect(sessions.count == 2)
         #expect(sessions[0].1.name == "Acme Corp")
         #expect(sessions[1].1.name == "side-project")

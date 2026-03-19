@@ -13,7 +13,7 @@ public struct ReportService: Sendable {
 
     public func allProjectsWithStatus() throws -> [ProjectStatus] {
         let projects = try projectRepository.list()
-        let runningSessions = try sessionRepository.getRunningWithProjects()
+        let runningSessions = try sessionRepository.list(running: true, from: nil, to: nil, projectId: nil)
 
         let runningByProjectId = Dictionary(
             runningSessions.map { ($0.0.projectId, $0.0) },
@@ -37,7 +37,7 @@ public struct ReportService: Sendable {
     // MARK: - Time range reports
 
     public func totals(from: Date, to: Date, projectId: Int? = nil) throws -> ProjectTotals {
-        let sessions = try sessionRepository.getSessions(from: from, to: to, projectId: projectId)
+        let sessions = try sessionRepository.list(running: nil, from: from, to: to, projectId: projectId)
         let now = Date()
 
         var projectDurations: [String: TimeInterval] = [:]
@@ -85,7 +85,7 @@ public struct ReportService: Sendable {
     }
 
     private func grouped(from: Date, to: Date, projectId: Int? = nil, grouping: Grouping) throws -> GroupedReport {
-        let sessions = try sessionRepository.getSessions(from: from, to: to, projectId: projectId)
+        let sessions = try sessionRepository.list(running: nil, from: from, to: to, projectId: projectId)
         let now = Date()
         let calendar = Calendar.current
 
@@ -131,7 +131,7 @@ public struct ReportService: Sendable {
     }
 
     public func verboseSessions(from: Date, to: Date, projectId: Int? = nil) throws -> [VerboseSessionRow] {
-        let sessions = try sessionRepository.getSessions(from: from, to: to, projectId: projectId)
+        let sessions = try sessionRepository.list(running: nil, from: from, to: to, projectId: projectId)
 
         return sessions.map { session, project in
             VerboseSessionRow(

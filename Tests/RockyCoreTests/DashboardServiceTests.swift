@@ -39,12 +39,12 @@ struct DashboardServiceTests {
         let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
 
         // Two 2-hour sessions
-        try sessionRepo.insert(
+        _ = try sessionRepo.create(
             projectId: project.id,
             startTime: date(day: 9, hour: 10),
             endTime: date(day: 9, hour: 12)
         )
-        try sessionRepo.insert(
+        _ = try sessionRepo.create(
             projectId: project.id,
             startTime: date(day: 10, hour: 14),
             endTime: date(day: 10, hour: 16)
@@ -63,18 +63,18 @@ struct DashboardServiceTests {
 
         // Week of Mar 9 (Monday) - Mar 11 is Wednesday
         // Session in this week
-        try sessionRepo.insert(
+        _ = try sessionRepo.create(
             projectId: project.id,
             startTime: date(day: 9, hour: 10),
             endTime: date(day: 9, hour: 12)
         )
-        try sessionRepo.insert(
+        _ = try sessionRepo.create(
             projectId: project.id,
             startTime: date(day: 10, hour: 10),
             endTime: date(day: 10, hour: 11)
         )
         // Session from last week (should not count)
-        try sessionRepo.insert(
+        _ = try sessionRepo.create(
             projectId: project.id,
             startTime: date(day: 6, hour: 10),
             endTime: date(day: 6, hour: 12)
@@ -92,12 +92,12 @@ struct DashboardServiceTests {
         let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
 
         // Mon Mar 9: 3 hours, Tue Mar 10: 3 hours = 6 hours over 2 days
-        try sessionRepo.insert(
+        _ = try sessionRepo.create(
             projectId: project.id,
             startTime: date(day: 9, hour: 9),
             endTime: date(day: 9, hour: 12)
         )
-        try sessionRepo.insert(
+        _ = try sessionRepo.create(
             projectId: project.id,
             startTime: date(day: 10, hour: 9),
             endTime: date(day: 10, hour: 12)
@@ -118,13 +118,13 @@ struct DashboardServiceTests {
         let p2 = try projectRepo.findOrCreate(name: "Other", slug: "Other".slugified)
 
         // Rocky: 5 hours
-        try sessionRepo.insert(
+        _ = try sessionRepo.create(
             projectId: p1.id,
             startTime: date(day: 9, hour: 8),
             endTime: date(day: 9, hour: 13)
         )
         // Other: 2 hours
-        try sessionRepo.insert(
+        _ = try sessionRepo.create(
             projectId: p2.id,
             startTime: date(day: 9, hour: 14),
             endTime: date(day: 9, hour: 16)
@@ -142,13 +142,13 @@ struct DashboardServiceTests {
         let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
 
         // Mon Mar 9: 1 hour
-        try sessionRepo.insert(
+        _ = try sessionRepo.create(
             projectId: project.id,
             startTime: date(day: 9, hour: 10),
             endTime: date(day: 9, hour: 11)
         )
         // Tue Mar 10: 4 hours (should be best)
-        try sessionRepo.insert(
+        _ = try sessionRepo.create(
             projectId: project.id,
             startTime: date(day: 10, hour: 8),
             endTime: date(day: 10, hour: 12)
@@ -187,13 +187,13 @@ struct DashboardServiceTests {
         let now = Date()
 
         // One completed session earlier today
-        try sessionRepo.insert(
+        _ = try sessionRepo.create(
             projectId: project.id,
             startTime: now.addingTimeInterval(-7200),
             endTime: now.addingTimeInterval(-3600)
         )
         // One running session (nil end_time) started an hour ago
-        try sessionRepo.insert(
+        _ = try sessionRepo.create(
             projectId: project.id,
             startTime: now.addingTimeInterval(-3600),
             endTime: nil
@@ -211,7 +211,7 @@ struct DashboardServiceTests {
 
         // 3 consecutive days: Mar 9, 10, 11
         for day in 9...11 {
-            try sessionRepo.insert(
+            _ = try sessionRepo.create(
                 projectId: project.id,
                 startTime: date(day: day, hour: 10),
                 endTime: date(day: day, hour: 11)
