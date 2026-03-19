@@ -2,273 +2,333 @@ import Testing
 import Foundation
 @testable import RockyCore
 
-@Suite("MockSessionRepository")
-struct MockSessionRepositoryTests {
-    @Test("start creates a running session")
-    func startSession() throws {
+@Suite("SessionRepository")
+struct SessionRepositoryTests {
+
+    // MARK: - create
+
+    @Test("create returns session with correct projectId")
+    func createReturnsSession() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let project = try projectRepo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
-        try sessionRepo.start(projectId: project.id)
-        let running = try sessionRepo.getRunning()
-        #expect(running.count == 1)
-        #expect(running[0].projectId == project.id)
-        #expect(running[0].isRunning)
+        let project = try projectRepo.create(name: "acme-corp", slug: "acme-corp".slugified)
+
+        let session = try sessionRepo.create(projectId: project.id, startTime: Date(), endTime: nil)
+        #expect(session.projectId == project.id)
+        #expect(session.id > 0)
     }
 
-    @Test("hasRunningSession returns false when nothing running")
-    func hasRunningFalse() throws {
+    @Test("create with nil endTime produces a running session")
+    func createRunningSession() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let project = try projectRepo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
-        #expect(try sessionRepo.hasRunningSession(projectId: project.id) == false)
+        let project = try projectRepo.create(name: "acme-corp", slug: "acme-corp".slugified)
+
+        let session = try sessionRepo.create(projectId: project.id, startTime: Date(), endTime: nil)
+        #expect(session.isRunning)
     }
 
-    @Test("hasRunningSession returns true after start")
-    func hasRunningTrue() throws {
+    @Test("create with endTime produces a completed session")
+    func createCompletedSession() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let project = try projectRepo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
-        try sessionRepo.start(projectId: project.id)
-        #expect(try sessionRepo.hasRunningSession(projectId: project.id) == true)
-    }
-
-    @Test("stop sets end_time on session")
-    func stopSession() throws {
-        let projectRepo = MockProjectRepository()
-        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let project = try projectRepo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
-        try sessionRepo.start(projectId: project.id)
-        let stopped = try sessionRepo.stop(projectId: project.id)
-        #expect(stopped.endTime != nil)
-        #expect(!stopped.isRunning)
-        let running = try sessionRepo.getRunning()
-        #expect(running.isEmpty)
-    }
-
-    @Test("stop throws when no running session")
-    func stopNoRunning() throws {
-        let projectRepo = MockProjectRepository()
-        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let project = try projectRepo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
-        #expect(throws: RockyCoreError.self) {
-            try sessionRepo.stop(projectId: project.id)
-        }
-    }
-
-    @Test("stopAll stops all running sessions")
-    func stopAll() throws {
-        let projectRepo = MockProjectRepository()
-        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let p1 = try projectRepo.findOrCreate(name: "project-1", slug: "project-1".slugified)
-        let p2 = try projectRepo.findOrCreate(name: "project-2", slug: "project-2".slugified)
-        try sessionRepo.start(projectId: p1.id)
-        try sessionRepo.start(projectId: p2.id)
-        let stopped = try sessionRepo.stopAll()
-        #expect(stopped.count == 2)
-        #expect(stopped.allSatisfy { !$0.isRunning })
-        let running = try sessionRepo.getRunning()
-        #expect(running.isEmpty)
-    }
-
-    @Test("stopAll returns empty array when nothing running")
-    func stopAllEmpty() throws {
-        let projectRepo = MockProjectRepository()
-        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let stopped = try sessionRepo.stopAll()
-        #expect(stopped.isEmpty)
-    }
-
-    @Test("concurrent timers on different projects")
-    func concurrentTimers() throws {
-        let projectRepo = MockProjectRepository()
-        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let p1 = try projectRepo.findOrCreate(name: "project-1", slug: "project-1".slugified)
-        let p2 = try projectRepo.findOrCreate(name: "project-2", slug: "project-2".slugified)
-        try sessionRepo.start(projectId: p1.id)
-        try sessionRepo.start(projectId: p2.id)
-        let running = try sessionRepo.getRunning()
-        #expect(running.count == 2)
-    }
-
-    @Test("stop one timer leaves other running")
-    func stopOneOfTwo() throws {
-        let projectRepo = MockProjectRepository()
-        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let p1 = try projectRepo.findOrCreate(name: "project-1", slug: "project-1".slugified)
-        let p2 = try projectRepo.findOrCreate(name: "project-2", slug: "project-2".slugified)
-        try sessionRepo.start(projectId: p1.id)
-        try sessionRepo.start(projectId: p2.id)
-        _ = try sessionRepo.stop(projectId: p1.id)
-        let running = try sessionRepo.getRunning()
-        #expect(running.count == 1)
-        #expect(running[0].projectId == p2.id)
-    }
-
-    @Test("getRunningWithProjects returns session and project data")
-    func runningWithProjects() throws {
-        let projectRepo = MockProjectRepository()
-        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let project = try projectRepo.findOrCreate(name: "acme-corp", slug: "acme-corp".slugified)
-        try sessionRepo.start(projectId: project.id)
-        let running = try sessionRepo.getRunningWithProjects()
-        #expect(running.count == 1)
-        #expect(running[0].0.projectId == project.id)
-        #expect(running[0].1.name == "acme-corp")
-    }
-
-    @Test("insert creates session with explicit start/end times")
-    func insertSession() throws {
-        let projectRepo = MockProjectRepository()
-        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
+        let project = try projectRepo.create(name: "acme-corp", slug: "acme-corp".slugified)
         let cal = Calendar.current
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         let start = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!
         let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
-        try sessionRepo.insert(projectId: project.id, startTime: start, endTime: end)
 
-        let from = cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!
-        let to = cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
-        let results = try sessionRepo.getSessions(from: from, to: to)
-        #expect(results.count == 1)
-        #expect(results[0].0.startTime == start)
-        #expect(results[0].0.endTime == end)
+        let session = try sessionRepo.create(projectId: project.id, startTime: start, endTime: end)
+        #expect(!session.isRunning)
+        #expect(session.startTime == start)
+        #expect(session.endTime == end)
     }
 
-    @Test("getSessions returns sessions overlapping date range")
-    func getSessionsDateRange() throws {
+    @Test("create assigns unique ids")
+    func createUniqueIds() throws {
+        let projectRepo = MockProjectRepository()
+        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
+        let project = try projectRepo.create(name: "acme-corp", slug: "acme-corp".slugified)
+
+        let s1 = try sessionRepo.create(projectId: project.id, startTime: Date(), endTime: nil)
+        let s2 = try sessionRepo.create(projectId: project.id, startTime: Date(), endTime: nil)
+        #expect(s1.id != s2.id)
+    }
+
+    // MARK: - get
+
+    @Test("get returns session by id")
+    func getById() throws {
+        let projectRepo = MockProjectRepository()
+        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
+        let project = try projectRepo.create(name: "acme-corp", slug: "acme-corp".slugified)
+        let cal = Calendar.current
+        let start = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!
+        let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
+
+        let created = try sessionRepo.create(projectId: project.id, startTime: start, endTime: end)
+        let found = try sessionRepo.get(id: created.id)
+        #expect(found != nil)
+        #expect(found?.startTime == start)
+        #expect(found?.endTime == end)
+    }
+
+    @Test("get returns nil for unknown id")
+    func getByIdUnknown() throws {
+        let projectRepo = MockProjectRepository()
+        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
+        let found = try sessionRepo.get(id: 999)
+        #expect(found == nil)
+    }
+
+    // MARK: - list
+
+    @Test("list with no filters returns all sessions with projects")
+    func listAll() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
         let cal = Calendar.current
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let p1 = try projectRepo.create(name: "project-1", slug: "project-1".slugified)
+        let p2 = try projectRepo.create(name: "project-2", slug: "project-2".slugified)
 
-        try sessionRepo.insert(projectId: project.id,
+        let start = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!
+        let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
+        _ = try sessionRepo.create(projectId: p1.id, startTime: start, endTime: end)
+        _ = try sessionRepo.create(projectId: p2.id, startTime: start, endTime: nil)
+
+        let results = try sessionRepo.list(running: nil, from: nil, to: nil, projectId: nil)
+        #expect(results.count == 2)
+    }
+
+    @Test("list running true returns only running sessions")
+    func listRunningOnly() throws {
+        let projectRepo = MockProjectRepository()
+        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
+        let cal = Calendar.current
+        let project = try projectRepo.create(name: "acme-corp", slug: "acme-corp".slugified)
+
+        let start = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!
+        let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
+        _ = try sessionRepo.create(projectId: project.id, startTime: start, endTime: end)
+        _ = try sessionRepo.create(projectId: project.id, startTime: Date(), endTime: nil)
+
+        let results = try sessionRepo.list(running: true, from: nil, to: nil, projectId: nil)
+        #expect(results.count == 1)
+        #expect(results[0].0.isRunning)
+    }
+
+    @Test("list running false returns only completed sessions")
+    func listCompletedOnly() throws {
+        let projectRepo = MockProjectRepository()
+        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
+        let cal = Calendar.current
+        let project = try projectRepo.create(name: "acme-corp", slug: "acme-corp".slugified)
+
+        let start = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!
+        let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
+        _ = try sessionRepo.create(projectId: project.id, startTime: start, endTime: end)
+        _ = try sessionRepo.create(projectId: project.id, startTime: Date(), endTime: nil)
+
+        let results = try sessionRepo.list(running: false, from: nil, to: nil, projectId: nil)
+        #expect(results.count == 1)
+        #expect(!results[0].0.isRunning)
+    }
+
+    @Test("list with date range returns overlapping sessions")
+    func listDateRange() throws {
+        let projectRepo = MockProjectRepository()
+        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
+        let cal = Calendar.current
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
+
+        // Inside range
+        _ = try sessionRepo.create(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!)
-        try sessionRepo.insert(projectId: project.id,
+        // Outside range
+        _ = try sessionRepo.create(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 5, hour: 10))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 5, hour: 11))!)
-        try sessionRepo.insert(projectId: project.id,
+        // Overlapping range boundary
+        _ = try sessionRepo.create(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 5, hour: 23))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 1))!)
 
         let from = cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!
         let to = cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
-        let results = try sessionRepo.getSessions(from: from, to: to)
+        let results = try sessionRepo.list(running: nil, from: from, to: to, projectId: nil)
 
         #expect(results.count == 2)
     }
 
-    @Test("getSessions excludes sessions outside the range")
-    func getSessionsOutsideRange() throws {
+    @Test("list excludes sessions outside the date range")
+    func listExcludesOutsideRange() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
         let cal = Calendar.current
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
 
-        try sessionRepo.insert(projectId: project.id,
+        _ = try sessionRepo.create(projectId: project.id,
             startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 1, hour: 10))!,
             endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 1, hour: 11))!)
 
         let from = cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!
         let to = cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
-        let results = try sessionRepo.getSessions(from: from, to: to)
+        let results = try sessionRepo.list(running: nil, from: from, to: to, projectId: nil)
 
         #expect(results.isEmpty)
     }
 
-    @Test("stopAll only affects running sessions")
-    func stopAllLeavesStoppedAlone() throws {
-        let projectRepo = MockProjectRepository()
-        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let p1 = try projectRepo.findOrCreate(name: "already-stopped", slug: "already-stopped".slugified)
-        let p2 = try projectRepo.findOrCreate(name: "still-running", slug: "still-running".slugified)
-        try sessionRepo.start(projectId: p1.id)
-        _ = try sessionRepo.stop(projectId: p1.id)
-        try sessionRepo.start(projectId: p2.id)
-        let stopped = try sessionRepo.stopAll()
-        #expect(stopped.count == 1)
-        #expect(stopped[0].projectId == p2.id)
-    }
-
-    @Test("getSessions filters by projectId")
-    func getSessionsFilterByProject() throws {
+    @Test("list filters by projectId")
+    func listFilterByProject() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
         let cal = Calendar.current
-        let p1 = try projectRepo.findOrCreate(name: "included", slug: "included".slugified)
-        let p2 = try projectRepo.findOrCreate(name: "excluded", slug: "excluded".slugified)
+        let p1 = try projectRepo.create(name: "included", slug: "included".slugified)
+        let p2 = try projectRepo.create(name: "excluded", slug: "excluded".slugified)
 
-        try sessionRepo.insert(projectId: p1.id,
-            startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!,
-            endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!)
-        try sessionRepo.insert(projectId: p2.id,
-            startTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!,
-            endTime: cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!)
+        let start = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!
+        let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
+        _ = try sessionRepo.create(projectId: p1.id, startTime: start, endTime: end)
+        _ = try sessionRepo.create(projectId: p2.id, startTime: start, endTime: end)
 
-        let from = cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!
-        let to = cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
-        let results = try sessionRepo.getSessions(from: from, to: to, projectId: p1.id)
+        let results = try sessionRepo.list(running: nil, from: nil, to: nil, projectId: p1.id)
 
         #expect(results.count == 1)
         #expect(results[0].1.name == "included")
     }
-}
 
-@Suite("MockSessionRepository Edit")
-struct MockSessionEditTests {
-    @Test("getById returns correct session")
-    func getById() throws {
+    @Test("list running true with projectId filters both")
+    func listRunningAndProject() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         let cal = Calendar.current
+        let p1 = try projectRepo.create(name: "project-1", slug: "project-1".slugified)
+        let p2 = try projectRepo.create(name: "project-2", slug: "project-2".slugified)
+
         let start = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!
         let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
-        try sessionRepo.insert(projectId: project.id, startTime: start, endTime: end)
 
-        let sessions = try sessionRepo.getSessions(
-            from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
-            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
-        )
-        let session = try sessionRepo.getById(sessions[0].0.id)
-        #expect(session != nil)
-        #expect(session?.startTime == start)
+        // p1 running
+        _ = try sessionRepo.create(projectId: p1.id, startTime: Date(), endTime: nil)
+        // p1 completed
+        _ = try sessionRepo.create(projectId: p1.id, startTime: start, endTime: end)
+        // p2 running
+        _ = try sessionRepo.create(projectId: p2.id, startTime: Date(), endTime: nil)
+
+        let results = try sessionRepo.list(running: true, from: nil, to: nil, projectId: p1.id)
+        #expect(results.count == 1)
+        #expect(results[0].0.isRunning)
+        #expect(results[0].1.name == "project-1")
     }
 
-    @Test("getById returns nil for unknown id")
-    func getByIdUnknown() throws {
+    @Test("list returns results sorted by start time ascending")
+    func listSortedByStartTime() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let session = try sessionRepo.getById(999)
-        #expect(session == nil)
+        let cal = Calendar.current
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
+
+        let later = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 14))!
+        let earlier = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!
+        let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 15))!
+
+        // Insert later first
+        _ = try sessionRepo.create(projectId: project.id, startTime: later, endTime: end)
+        _ = try sessionRepo.create(projectId: project.id, startTime: earlier, endTime: end)
+
+        let results = try sessionRepo.list(running: nil, from: nil, to: nil, projectId: nil)
+        #expect(results[0].0.startTime == earlier)
+        #expect(results[1].0.startTime == later)
     }
+
+    @Test("list returns project data alongside session")
+    func listIncludesProjectData() throws {
+        let projectRepo = MockProjectRepository()
+        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
+        let project = try projectRepo.create(name: "Acme Corp", slug: "Acme Corp".slugified)
+
+        _ = try sessionRepo.create(projectId: project.id, startTime: Date(), endTime: nil)
+
+        let results = try sessionRepo.list(running: nil, from: nil, to: nil, projectId: nil)
+        #expect(results.count == 1)
+        #expect(results[0].1.name == "Acme Corp")
+        #expect(results[0].1.slug == "acme-corp")
+    }
+
+    // MARK: - update
 
     @Test("update modifies session times")
-    func update() throws {
+    func updateTimes() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        let project = try projectRepo.findOrCreate(name: "test", slug: "test".slugified)
         let cal = Calendar.current
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
         let start = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!
         let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
-        try sessionRepo.insert(projectId: project.id, startTime: start, endTime: end)
 
-        let sessions = try sessionRepo.getSessions(
-            from: cal.date(from: DateComponents(year: 2026, month: 3, day: 6))!,
-            to: cal.date(from: DateComponents(year: 2026, month: 3, day: 7))!
-        )
-        let sessionId = sessions[0].0.id
+        let created = try sessionRepo.create(projectId: project.id, startTime: start, endTime: end)
 
         let newStart = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 9))!
         let newEnd = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 12))!
-        let updated = try sessionRepo.update(id: sessionId, startTime: newStart, endTime: newEnd)
+        let updated = try sessionRepo.update(id: created.id, startTime: newStart, endTime: newEnd)
 
         #expect(updated.startTime == newStart)
         #expect(updated.endTime == newEnd)
+    }
 
-        let fetched = try sessionRepo.getById(sessionId)
+    @Test("update persists changes")
+    func updatePersists() throws {
+        let projectRepo = MockProjectRepository()
+        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
+        let cal = Calendar.current
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
+        let start = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!
+        let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
+
+        let created = try sessionRepo.create(projectId: project.id, startTime: start, endTime: end)
+
+        let newStart = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 9))!
+        let newEnd = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 12))!
+        _ = try sessionRepo.update(id: created.id, startTime: newStart, endTime: newEnd)
+
+        let fetched = try sessionRepo.get(id: created.id)
         #expect(fetched?.startTime == newStart)
         #expect(fetched?.endTime == newEnd)
+    }
+
+    @Test("update throws for unknown id")
+    func updateUnknownId() throws {
+        let projectRepo = MockProjectRepository()
+        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
+        #expect(throws: RockyCoreError.self) {
+            try sessionRepo.update(id: 999, startTime: Date(), endTime: nil)
+        }
+    }
+
+    @Test("update can set endTime to nil (reopen session)")
+    func updateReopenSession() throws {
+        let projectRepo = MockProjectRepository()
+        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
+        let cal = Calendar.current
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
+        let start = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!
+        let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
+
+        let created = try sessionRepo.create(projectId: project.id, startTime: start, endTime: end)
+        let updated = try sessionRepo.update(id: created.id, startTime: start, endTime: nil)
+
+        #expect(updated.isRunning)
+    }
+
+    @Test("update preserves projectId")
+    func updatePreservesProjectId() throws {
+        let projectRepo = MockProjectRepository()
+        let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
+
+        let created = try sessionRepo.create(projectId: project.id, startTime: Date(), endTime: nil)
+        let updated = try sessionRepo.update(id: created.id, startTime: Date(), endTime: Date())
+
+        #expect(updated.projectId == project.id)
     }
 }
