@@ -47,8 +47,6 @@ public enum RockyCoreError: Error, CustomStringConvertible {
     case invalidRow(String)
     case projectNotFound(String)
     case projectAlreadyExists(String)
-    case timerAlreadyRunning(String)
-    case noRunningTimers
     case sessionNotFound(Int)
     case cannotEditRunningSessionStop
     case startTimeInFuture
@@ -64,10 +62,6 @@ public enum RockyCoreError: Error, CustomStringConvertible {
             return "Project not found: \(name)"
         case .projectAlreadyExists(let name):
             return "Project already exists: \(name)"
-        case .timerAlreadyRunning(let name):
-            return "Timer already running for \(name)"
-        case .noRunningTimers:
-            return "No timers currently running."
         case .sessionNotFound(let id):
             return "No session found with ID \(id)."
         case .cannotEditRunningSessionStop:
