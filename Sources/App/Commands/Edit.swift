@@ -40,11 +40,12 @@ struct Edit: ParsableCommand {
         let newStart = try start.map { try DateTimeFormat.parse($0) }
         let newStop = try stop.map { try DateTimeFormat.parse($0) }
 
-        let updated = try ctx.sessionService.update(
-            id: sessionId,
+        let updated = try resolveAndUpdate(
+            sessionId: sessionId,
             newStart: newStart,
             newStop: newStop,
-            newDuration: duration
+            newDuration: duration,
+            ctx: ctx
         )
 
         printSessionSummary(updated)
@@ -98,16 +99,85 @@ struct Edit: ParsableCommand {
         switch field {
         case .start:
             let newStart = try promptForDatetime("New value (YYYY-MM-DD HH:MM): ")
-            let updated = try ctx.sessionService.update(id: sessionId, newStart: newStart, newStop: nil, newDuration: nil)
+            let updated = try resolveAndUpdate(sessionId: sessionId, newStart: newStart, newStop: nil, newDuration: nil, ctx: ctx)
             printSessionSummary(updated)
         case .stop:
             let newStop = try promptForDatetime("New value (YYYY-MM-DD HH:MM): ")
-            let updated = try ctx.sessionService.update(id: sessionId, newStart: nil, newStop: newStop, newDuration: nil)
+            let updated = try resolveAndUpdate(sessionId: sessionId, newStart: nil, newStop: newStop, newDuration: nil, ctx: ctx)
             printSessionSummary(updated)
         case .duration:
             let newDuration = try promptForDuration()
-            let updated = try ctx.sessionService.update(id: sessionId, newStart: nil, newStop: nil, newDuration: newDuration)
+            let updated = try resolveAndUpdate(sessionId: sessionId, newStart: nil, newStop: nil, newDuration: newDuration, ctx: ctx)
+            printSessionSummary(updated)
         }
+    }
+
+    // MARK: - Flag resolution
+
+    private func resolveAndUpdate(
+        sessionId: Int,
+        newStart: Date?,
+        newStop: Date?,
+        newDuration: TimeInterval?,
+        ctx: AppContext
+    ) throws -> Session {
+        // Validate not overdetermined
+        if newStart != nil && newStop != nil && newDuration != nil {
+            throw RockyCoreError.overdetermined
+        }
+
+        // Fetch existing session
+        guard let existing = try ctx.sessionService.get(id: sessionId) else {
+            throw RockyCoreError.sessionNotFound(sessionId)
+        }
+
+        // Validate duration if provided
+        if let duration = newDuration, duration <= 0 {
+            throw RockyCoreError.durationNotPositive
+        }
+
+        // Resolve final start and stop based on flag combinations
+        let finalStart: Date
+        let finalStop: Date?
+
+        if let start = newStart, let stop = newStop {
+            finalStart = start
+            finalStop = stop
+        } else if let start = newStart, let duration = newDuration {
+            finalStart = start
+            finalStop = start.addingTimeInterval(duration)
+        } else if let stop = newStop, let duration = newDuration {
+            finalStart = stop.addingTimeInterval(-duration)
+            finalStop = stop
+        } else if let start = newStart {
+            finalStart = start
+            finalStop = existing.endTime
+        } else if let stop = newStop {
+            finalStart = existing.startTime
+            finalStop = stop
+        } else if let duration = newDuration {
+            finalStart = existing.startTime
+            finalStop = existing.startTime.addingTimeInterval(duration)
+        } else {
+            return existing
+        }
+
+        // Validate: cannot edit stop of a running session
+        if existing.isRunning && finalStop != nil && (newStop != nil || newDuration != nil) {
+            throw RockyCoreError.cannotEditRunningSessionStop
+        }
+
+        // Validate: start not in future
+        if finalStart > Date() {
+            throw RockyCoreError.startTimeInFuture
+        }
+
+        // Validate: stop must be after start
+        if let stop = finalStop, stop <= finalStart {
+            throw RockyCoreError.stopBeforeStart
+        }
+
+        return try ctx.sessionService.update(id: sessionId, startTime: finalStart, endTime: finalStop)
     }
 
     // MARK: - Prompts

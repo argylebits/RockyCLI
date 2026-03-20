@@ -36,7 +36,7 @@ struct Stop: ParsableCommand {
 
         if running.count == 1 {
             let (session, proj) = running[0]
-            let stopped = try ctx.sessionService.update(id: session.id, newStart: nil, newStop: Date(), newDuration: nil)
+            let stopped = try ctx.sessionService.update(id: session.id, startTime: session.startTime, endTime: Date())
             output("Stopped \(proj.name) (\(DurationFormat.formatted(stopped.duration())))")
             return
         }
@@ -60,7 +60,7 @@ struct Stop: ParsableCommand {
 
             if let num = Int(input), num >= 1, num <= running.count {
                 let (session, proj) = running[num - 1]
-                let stopped = try ctx.sessionService.update(id: session.id, newStart: nil, newStop: Date(), newDuration: nil)
+                let stopped = try ctx.sessionService.update(id: session.id, startTime: session.startTime, endTime: Date())
                 output("Stopped \(proj.name) (\(DurationFormat.formatted(stopped.duration())))")
                 return
             }
@@ -77,7 +77,7 @@ struct Stop: ParsableCommand {
         guard let (session, _) = running.first else {
             throw ValidationError("No timer running for \(proj.name).")
         }
-        let stopped = try ctx.sessionService.update(id: session.id, newStart: nil, newStop: Date(), newDuration: nil)
+        let stopped = try ctx.sessionService.update(id: session.id, startTime: session.startTime, endTime: Date())
         output("Stopped \(proj.name) (\(DurationFormat.formatted(stopped.duration())))")
     }
 
@@ -91,7 +91,7 @@ struct Stop: ParsableCommand {
         let now = Date()
         var entries: [(name: String, duration: String)] = []
         for (session, proj) in running {
-            let stopped = try ctx.sessionService.update(id: session.id, newStart: nil, newStop: now, newDuration: nil)
+            let stopped = try ctx.sessionService.update(id: session.id, startTime: session.startTime, endTime: now)
             entries.append((proj.name, DurationFormat.formatted(stopped.duration())))
         }
 
