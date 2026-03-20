@@ -94,10 +94,10 @@ struct SessionServiceTests {
         #expect(found == nil)
     }
 
-    // MARK: - update (validation logic)
+    // MARK: - update
 
-    @Test("update with overdetermined flags throws")
-    func updateOverdetermined() throws {
+    @Test("update modifies session times")
+    func updateTimes() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
         let project = try projectRepo.create(name: "test", slug: "test".slugified)
         let cal = Calendar.current
@@ -105,32 +105,41 @@ struct SessionServiceTests {
         let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
         let created = try sessionRepo.create(projectId: project.id, startTime: start, endTime: end)
 
-        #expect(throws: RockyCoreError.self) {
-            try service.update(id: created.id, newStart: start, newStop: end, newDuration: 3600)
-        }
+        let newStart = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 9))!
+        let newEnd = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 12))!
+        let updated = try service.update(id: created.id, startTime: newStart, endTime: newEnd)
+
+        #expect(updated.startTime == newStart)
+        #expect(updated.endTime == newEnd)
     }
 
-    @Test("update with start only keeps existing stop")
-    func updateStartOnly() throws {
+    @Test("update can set endTime to stop a running session")
+    func updateStopRunning() throws {
+        let (projectRepo, _, service) = makeServices()
+        let project = try projectRepo.create(name: "test", slug: "test".slugified)
+        try service.create(projectId: project.id)
+
+        let running = try service.list(running: true)
+        let session = running[0].0
+
+        let stopped = try service.update(id: session.id, startTime: session.startTime, endTime: Date())
+        #expect(!stopped.isRunning)
+        #expect(stopped.endTime != nil)
+    }
+
+    @Test("update persists changes")
+    func updatePersists() throws {
         let (projectRepo, sessionRepo, service) = makeServices()
         let project = try projectRepo.create(name: "test", slug: "test".slugified)
         let cal = Calendar.current
         let start = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 10))!
-        let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 12))!
+        let end = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 11))!
         let created = try sessionRepo.create(projectId: project.id, startTime: start, endTime: end)
 
-        let newStart = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 9))!
-        let updated = try service.update(id: created.id, newStart: newStart, newStop: nil, newDuration: nil)
+        let newEnd = cal.date(from: DateComponents(year: 2026, month: 3, day: 6, hour: 14))!
+        _ = try service.update(id: created.id, startTime: start, endTime: newEnd)
 
-        #expect(updated.startTime == newStart)
-        #expect(updated.endTime == end)
-    }
-
-    @Test("update unknown id throws sessionNotFound")
-    func updateNotFound() throws {
-        let (_, _, service) = makeServices()
-        #expect(throws: RockyCoreError.self) {
-            try service.update(id: 999, newStart: Date(), newStop: nil, newDuration: nil)
-        }
+        let fetched = try service.get(id: created.id)
+        #expect(fetched?.endTime == newEnd)
     }
 }
