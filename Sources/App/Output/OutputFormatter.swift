@@ -5,146 +5,51 @@ enum OutputFormatter {
 
     // MARK: - JSON
 
-    static func formatJSON(_ result: CommandResult) -> String {
+    private static let jsonEncoder: JSONEncoder = {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
+        return encoder
+    }()
 
+    static func formatJSON(_ result: CommandResult) -> String {
         switch result {
-        case .sessionStarted(let project, let running):
-            return encode(encoder, command: "session.start",
-                          data: SessionStartJSON(project: project, running: running))
-
-        case .sessionStopped(let entries):
-            return encode(encoder, command: "session.stop",
-                          data: SessionStopJSON(sessions: entries.map {
-                              SessionStopEntryJSON(project: $0.name, duration: Int($0.duration))
-                          }))
+        case .sessionEdited(let session):
+            return encode(["session": session])
 
         case .sessionStatus(let statuses):
-            return encode(encoder, command: "session.status",
-                          data: SessionStatusJSON(projects: statuses.map { status in
-                              SessionStatusEntryJSON(
-                                  project: status.project.name,
-                                  slug: status.project.slug,
-                                  running: status.isRunning,
-                                  duration: status.runningSession.map { Int($0.duration()) },
-                                  startTime: status.runningSession?.startTime.iso8601String
-                              )
-                          }))
+            let projects = statuses.map(\.project)
+            let sessions = statuses.compactMap(\.runningSession)
+            return encode(SessionsWithProjects(sessions: sessions, projects: projects))
 
-        case .sessionTodayTotals(let totals, let period):
-            return encode(encoder, command: "session.today",
-                          data: SessionTodayJSON(
-                              period: period,
-                              total: Int(totals.total),
-                              entries: totals.entries.map {
-                                  SessionTotalEntryJSON(project: $0.projectName, duration: Int($0.duration), running: $0.isRunning)
-                              }
-                          ))
-
-        case .sessionGrouped(let report, let period, let projectFilter, _):
-            return encode(encoder, command: "session.grouped",
-                          data: SessionGroupedJSON(
-                              period: period,
-                              columns: report.columns,
-                              rows: report.rows.map { row in
-                                  var durations: [String: Int] = [:]
-                                  for (i, col) in report.columns.enumerated() {
-                                      durations[col] = Int(row.columnDurations[i] ?? 0)
-                                  }
-                                  return SessionGroupedRowJSON(
-                                      project: row.projectName,
-                                      running: row.isRunning,
-                                      total: Int(row.total),
-                                      durations: durations
-                                  )
-                              },
-                              grandTotal: Int(report.grandTotal),
-                              projectFilter: projectFilter
-                          ))
-
-        case .sessionVerbose(let sessions, let period, let projectFilter):
-            return encode(encoder, command: "session.verbose",
-                          data: SessionVerboseJSON(
-                              period: period,
-                              sessions: sessions.map { row in
-                                  SessionVerboseEntryJSON(
-                                      id: row.session.id,
-                                      project: row.projectName,
-                                      startTime: row.session.startTime.iso8601String,
-                                      endTime: row.session.endTime?.iso8601String,
-                                      duration: Int(row.session.duration()),
-                                      running: row.session.isRunning
-                                  )
-                              },
-                              total: Int(sessions.reduce(0.0) { $0 + $1.session.duration() }),
-                              projectFilter: projectFilter
-                          ))
-
-        case .sessionEdited(let session):
-            return encode(encoder, command: "session.edit",
-                          data: SessionEditedJSON(
-                              id: session.id,
-                              startTime: session.startTime.iso8601String,
-                              endTime: session.endTime?.iso8601String,
-                              duration: Int(session.duration()),
-                              running: session.isRunning
-                          ))
+        case .sessionVerbose(let rows, _, _):
+            return encode(["sessions": rows.map(\.session)])
 
         case .projectList(let projects):
-            return encode(encoder, command: "project.list",
-                          data: ProjectListJSON(projects: projects.map {
-                              ProjectJSON(id: $0.id, name: $0.name, slug: $0.slug, createdAt: $0.createdAt.iso8601String)
-                          }))
-
-        case .projectRenamed(let oldName, let newName):
-            return encode(encoder, command: "project.rename",
-                          data: ProjectRenameJSON(oldName: oldName, newName: newName))
-
-        case .dashboard(let dashboardData):
-            return encode(encoder, command: "dashboard",
-                          data: DashboardJSON(
-                              runningTimers: dashboardData.runningTimers.map {
-                                  DashboardRunningTimerJSON(project: $0.projectName, duration: Int($0.duration))
-                              },
-                              timeSummary: DashboardTimeSummaryJSON(
-                                  thisWeek: Int(dashboardData.timeSummary.thisWeek),
-                                  lastWeek: Int(dashboardData.timeSummary.lastWeek),
-                                  thisMonth: Int(dashboardData.timeSummary.thisMonth),
-                                  lastMonth: Int(dashboardData.timeSummary.lastMonth),
-                                  thisYear: Int(dashboardData.timeSummary.thisYear)
-                              ),
-                              stats: DashboardStatsJSON(
-                                  currentStreak: dashboardData.stats.currentStreak,
-                                  longestStreak: dashboardData.stats.longestStreak,
-                                  sessionsThisWeek: dashboardData.stats.sessionsThisWeek,
-                                  averageSessionDuration: Int(dashboardData.stats.averageSessionDuration),
-                                  dailyAvgWeek: Int(dashboardData.stats.dailyAvgWeek),
-                                  totalHours: Int(dashboardData.stats.totalHours)
-                              )
-                          ))
+            return encode(["projects": projects])
 
         case .configValue(let key, let value):
-            return encode(encoder, command: "config.get",
-                          data: ConfigValueJSON(key: key, value: value))
+            return encode(["key": key, "value": value])
 
         case .configList(let entries):
-            return encode(encoder, command: "config.list",
-                          data: ConfigListJSON(entries: entries.map {
-                              ConfigValueJSON(key: $0.key, value: $0.value)
-                          }))
+            return encode(["entries": entries.map { ["key": $0.key, "value": $0.value] }])
 
         case .message(let text):
-            return encode(encoder, command: "message",
-                          data: MessageJSON(message: text))
+            return encode(["message": text])
+
+        default:
+            // sessionStarted, sessionStopped, sessionTodayTotals, sessionGrouped,
+            // projectRenamed, dashboard — these don't carry full models yet.
+            // They will be reworked when commands are migrated to return models (#126).
+            return encode(["message": formatText(result)])
         }
     }
 
-    private static func encode<T: Encodable>(_ encoder: JSONEncoder, command: String, data: T) -> String {
-        let envelope = JSONEnvelope(command: command, data: data)
-        let jsonData = try! encoder.encode(envelope)
-        return String(data: jsonData, encoding: .utf8)!
+    private static func encode<T: Encodable>(_ value: T) -> String {
+        let data = try! jsonEncoder.encode(value)
+        return String(data: data, encoding: .utf8)!
     }
+
 
     // MARK: - Text
 
