@@ -97,7 +97,7 @@ struct SessionsStopTests {
         _ = try projectRepo.create(name: "acme-corp", slug: "acme-corp")
 
         let cmd = makeStop(project: "acme-corp")
-        #expect(throws: RockyError.noTimerRunning("acme-corp")) {
+        #expect(throws: RockyError.sessionNoTimerRunning("acme-corp")) {
             try cmd.execute(ctx: ctx)
         }
     }

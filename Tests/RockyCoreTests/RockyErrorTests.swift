@@ -5,13 +5,15 @@ import Testing
 @Suite("RockyError")
 struct RockyErrorTests {
 
-    // MARK: - Existing cases (from RockyCoreError)
+    // MARK: - Row mapping
 
     @Test("invalidRow description")
     func invalidRow() {
         let error = RockyError.invalidRow("projects")
         #expect(error.description == "Invalid row data in projects table")
     }
+
+    // MARK: - Project
 
     @Test("projectNotFound description")
     func projectNotFound() {
@@ -25,79 +27,81 @@ struct RockyErrorTests {
         #expect(error.description == "Project already exists: acme-corp")
     }
 
+    // MARK: - Session
+
     @Test("sessionNotFound description")
     func sessionNotFound() {
         let error = RockyError.sessionNotFound(42)
         #expect(error.description == "No session found with ID 42.")
     }
 
-    @Test("cannotEditRunningSessionStop description")
-    func cannotEditRunningSessionStop() {
-        let error = RockyError.cannotEditRunningSessionStop
-        #expect(error.description == "Cannot edit the stop time of a running session. Stop it first.")
-    }
-
-    @Test("startTimeInFuture description")
-    func startTimeInFuture() {
-        let error = RockyError.startTimeInFuture
-        #expect(error.description == "Start time cannot be in the future.")
-    }
-
-    @Test("stopBeforeStart description")
-    func stopBeforeStart() {
-        let error = RockyError.stopBeforeStart
-        #expect(error.description == "Stop time must be after start time.")
-    }
-
-    @Test("durationNotPositive description")
-    func durationNotPositive() {
-        let error = RockyError.durationNotPositive
-        #expect(error.description == "Duration must be positive.")
-    }
-
-    @Test("overdetermined description")
-    func overdetermined() {
-        let error = RockyError.overdetermined
-        #expect(error.description == "Cannot specify --start, --stop, and --duration together.")
-    }
-
-    // MARK: - New cases (absorbed from ValidationError)
-
-    @Test("timerAlreadyRunning description")
-    func timerAlreadyRunning() {
-        let error = RockyError.timerAlreadyRunning("Acme Corp")
+    @Test("sessionTimerAlreadyRunning description")
+    func sessionTimerAlreadyRunning() {
+        let error = RockyError.sessionTimerAlreadyRunning("Acme Corp")
         #expect(error.description == "Timer already running for Acme Corp")
     }
 
-    @Test("noTimerRunning with project name description")
-    func noTimerRunningWithProject() {
-        let error = RockyError.noTimerRunning("Acme Corp")
+    @Test("sessionNoTimerRunning with project name description")
+    func sessionNoTimerRunningWithProject() {
+        let error = RockyError.sessionNoTimerRunning("Acme Corp")
         #expect(error.description == "No timer running for Acme Corp.")
     }
 
-    @Test("noTimerRunning without project name description")
-    func noTimerRunningNoProject() {
-        let error = RockyError.noTimerRunning(nil)
+    @Test("sessionNoTimerRunning without project name description")
+    func sessionNoTimerRunningNoProject() {
+        let error = RockyError.sessionNoTimerRunning(nil)
         #expect(error.description == "No timers currently running.")
     }
 
-    @Test("invalidDateFormat description")
-    func invalidDateFormat() {
-        let error = RockyError.invalidDateFormat("not-a-date")
+    @Test("sessionRunningSessionStop description")
+    func sessionRunningSessionStop() {
+        let error = RockyError.sessionRunningSessionStop
+        #expect(error.description == "Cannot edit the stop time of a running session. Stop it first.")
+    }
+
+    @Test("sessionStartTimeInFuture description")
+    func sessionStartTimeInFuture() {
+        let error = RockyError.sessionStartTimeInFuture
+        #expect(error.description == "Start time cannot be in the future.")
+    }
+
+    @Test("sessionStopBeforeStart description")
+    func sessionStopBeforeStart() {
+        let error = RockyError.sessionStopBeforeStart
+        #expect(error.description == "Stop time must be after start time.")
+    }
+
+    @Test("sessionDurationNotPositive description")
+    func sessionDurationNotPositive() {
+        let error = RockyError.sessionDurationNotPositive
+        #expect(error.description == "Duration must be positive.")
+    }
+
+    @Test("sessionOverdetermined description")
+    func sessionOverdetermined() {
+        let error = RockyError.sessionOverdetermined
+        #expect(error.description == "Cannot specify --start, --stop, and --duration together.")
+    }
+
+    @Test("sessionInvalidDateFormat description")
+    func sessionInvalidDateFormat() {
+        let error = RockyError.sessionInvalidDateFormat("not-a-date")
         #expect(error.description == "Invalid date format: not-a-date. Use YYYY-MM-DD.")
     }
 
-    @Test("inputCancelled description")
-    func inputCancelled() {
-        let error = RockyError.inputCancelled
+    @Test("sessionInputCancelled description")
+    func sessionInputCancelled() {
+        let error = RockyError.sessionInputCancelled
         #expect(error.description == "Input cancelled.")
     }
 
-    @Test("missingArgument description")
-    func missingArgument() {
-        let error = RockyError.missingArgument("Provide a project name for interactive mode or --session for non-interactive mode.")
+    @Test("sessionMissingArgument description")
+    func sessionMissingArgument() {
+        let error = RockyError.sessionMissingArgument("Provide a project name for interactive mode or --session for non-interactive mode.")
         #expect(error.description == "Provide a project name for interactive mode or --session for non-interactive mode.")
     }
+
+    // MARK: - Config
 
     @Test("configKeyNotSet description")
     func configKeyNotSet() {
@@ -110,9 +114,9 @@ struct RockyErrorTests {
     @Test("errors with same case and value are equal")
     func equatable() {
         #expect(RockyError.projectNotFound("x") == RockyError.projectNotFound("x"))
-        #expect(RockyError.timerAlreadyRunning("y") == RockyError.timerAlreadyRunning("y"))
+        #expect(RockyError.sessionTimerAlreadyRunning("y") == RockyError.sessionTimerAlreadyRunning("y"))
         #expect(RockyError.sessionNotFound(1) == RockyError.sessionNotFound(1))
-        #expect(RockyError.inputCancelled == RockyError.inputCancelled)
+        #expect(RockyError.sessionInputCancelled == RockyError.sessionInputCancelled)
     }
 
     @Test("errors with different cases are not equal")

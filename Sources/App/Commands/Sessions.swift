@@ -26,7 +26,7 @@ struct Sessions: ParsableCommand {
                 ?? ctx.projectService.create(name: project)
 
             if ctx.config.autoStop, try !ctx.sessionService.list(running: true, projectId: proj.id).isEmpty {
-                throw RockyError.timerAlreadyRunning(proj.name)
+                throw RockyError.sessionTimerAlreadyRunning(proj.name)
             }
 
             try ctx.sessionService.create(projectId: proj.id)
@@ -91,7 +91,7 @@ struct Sessions: ParsableCommand {
             while true {
                 print("Stop which? (\(running.indices.map { "\($0 + 1)" }.joined(separator: "/"))/all): ", terminator: "")
                 guard let line = readLine() else {
-                    throw RockyError.inputCancelled
+                    throw RockyError.sessionInputCancelled
                 }
                 let input = line.trimmingCharacters(in: .whitespaces)
 
@@ -117,7 +117,7 @@ struct Sessions: ParsableCommand {
             }
             let running = try ctx.sessionService.list(running: true, projectId: proj.id)
             guard let (session, _) = running.first else {
-                throw RockyError.noTimerRunning(proj.name)
+                throw RockyError.sessionNoTimerRunning(proj.name)
             }
             let stopped = try ctx.sessionService.update(id: session.id, startTime: session.startTime, endTime: Date())
             output("Stopped \(proj.name) (\(DurationFormat.formatted(stopped.duration())))")
@@ -255,12 +255,12 @@ struct Sessions: ParsableCommand {
 
             if let fromStr = from {
                 guard let fromDate = parseDate(fromStr) else {
-                    throw RockyError.invalidDateFormat(fromStr)
+                    throw RockyError.sessionInvalidDateFormat(fromStr)
                 }
                 let toDate: Date
                 if let toStr = to {
                     guard let parsed = parseDate(toStr) else {
-                        throw RockyError.invalidDateFormat(toStr)
+                        throw RockyError.sessionInvalidDateFormat(toStr)
                     }
                     toDate = calendar.date(byAdding: .day, value: 1, to: parsed)!
                 } else {
@@ -352,7 +352,7 @@ struct Sessions: ParsableCommand {
             } else if let projectName = project {
                 try interactive(projectName: projectName, ctx: ctx)
             } else {
-                throw RockyError.missingArgument("Provide a project name for interactive mode or --session for non-interactive mode.")
+                throw RockyError.sessionMissingArgument("Provide a project name for interactive mode or --session for non-interactive mode.")
             }
         }
 
@@ -445,7 +445,7 @@ struct Sessions: ParsableCommand {
         ) throws -> Session {
             // Validate not overdetermined
             if newStart != nil && newStop != nil && newDuration != nil {
-                throw RockyError.overdetermined
+                throw RockyError.sessionOverdetermined
             }
 
             // Fetch existing session
@@ -455,7 +455,7 @@ struct Sessions: ParsableCommand {
 
             // Validate duration if provided
             if let duration = newDuration, duration <= 0 {
-                throw RockyError.durationNotPositive
+                throw RockyError.sessionDurationNotPositive
             }
 
             // Resolve final start and stop based on flag combinations
@@ -486,17 +486,17 @@ struct Sessions: ParsableCommand {
 
             // Validate: cannot edit stop of a running session
             if existing.isRunning && finalStop != nil && (newStop != nil || newDuration != nil) {
-                throw RockyError.cannotEditRunningSessionStop
+                throw RockyError.sessionRunningSessionStop
             }
 
             // Validate: start not in future
             if finalStart > Date() {
-                throw RockyError.startTimeInFuture
+                throw RockyError.sessionStartTimeInFuture
             }
 
             // Validate: stop must be after start
             if let stop = finalStop, stop <= finalStart {
-                throw RockyError.stopBeforeStart
+                throw RockyError.sessionStopBeforeStart
             }
 
             return try ctx.sessionService.update(id: sessionId, startTime: finalStart, endTime: finalStop)
@@ -509,7 +509,7 @@ struct Sessions: ParsableCommand {
             while true {
                 print("Edit which? ", terminator: "")
                 guard let line = readLine() else {
-                    throw RockyError.inputCancelled
+                    throw RockyError.sessionInputCancelled
                 }
                 let input = line.trimmingCharacters(in: .whitespaces)
                 guard let id = Int(input) else {
@@ -529,7 +529,7 @@ struct Sessions: ParsableCommand {
             while true {
                 print("Edit which field? (1/2/3): ", terminator: "")
                 guard let line = readLine() else {
-                    throw RockyError.inputCancelled
+                    throw RockyError.sessionInputCancelled
                 }
                 let input = line.trimmingCharacters(in: .whitespaces)
 
@@ -557,7 +557,7 @@ struct Sessions: ParsableCommand {
             while true {
                 print(prompt, terminator: "")
                 guard let line = readLine() else {
-                    throw RockyError.inputCancelled
+                    throw RockyError.sessionInputCancelled
                 }
                 let input = line.trimmingCharacters(in: .whitespaces)
                 do {
@@ -572,7 +572,7 @@ struct Sessions: ParsableCommand {
             while true {
                 print("New value (seconds): ", terminator: "")
                 guard let line = readLine() else {
-                    throw RockyError.inputCancelled
+                    throw RockyError.sessionInputCancelled
                 }
                 let input = line.trimmingCharacters(in: .whitespaces)
                 guard let seconds = Double(input), seconds > 0 else {
