@@ -14,19 +14,37 @@ enum OutputFormatter {
 
     static func formatJSON(_ result: CommandResult) -> String {
         switch result {
-        case .sessionEdited(let session):
+        case .sessionStarted(let session, _, _):
             return encode(["session": session])
+
+        case .sessionStopped(let sessions, let projects):
+            return encode(SessionsWithProjects(sessions: sessions, projects: projects))
 
         case .sessionStatus(let statuses):
             let projects = statuses.map(\.project)
             let sessions = statuses.compactMap(\.runningSession)
             return encode(SessionsWithProjects(sessions: sessions, projects: projects))
 
+        case .sessionTodayTotals(_, _, let sessions, let projects):
+            return encode(SessionsWithProjects(sessions: sessions, projects: projects))
+
+        case .sessionGrouped(_, _, _, _, let sessions, let projects):
+            return encode(SessionsWithProjects(sessions: sessions, projects: projects))
+
         case .sessionVerbose(let rows, _, _):
             return encode(["sessions": rows.map(\.session)])
 
+        case .sessionEdited(let session):
+            return encode(["session": session])
+
         case .projectList(let projects):
             return encode(["projects": projects])
+
+        case .projectRenamed(_, let project):
+            return encode(["project": project])
+
+        case .dashboard:
+            return encode(["message": formatText(result)])
 
         case .configValue(let key, let value):
             return encode(["key": key, "value": value])
@@ -36,12 +54,6 @@ enum OutputFormatter {
 
         case .message(let text):
             return encode(["message": text])
-
-        default:
-            // sessionStarted, sessionStopped, sessionTodayTotals, sessionGrouped,
-            // projectRenamed, dashboard — these don't carry full models yet.
-            // They will be reworked when commands are migrated to return models (#126).
-            return encode(["message": formatText(result)])
         }
     }
 
@@ -55,20 +67,25 @@ enum OutputFormatter {
 
     static func formatText(_ result: CommandResult) -> String {
         switch result {
-        case .sessionStarted(let project, let running):
-            var msg = "Started \(project)"
-            if !running.isEmpty {
-                msg += "\nCurrently running: \(running.joined(separator: ", "))"
+        case .sessionStarted(_, let project, let otherRunning):
+            var msg = "Started \(project.name)"
+            if !otherRunning.isEmpty {
+                msg += "\nCurrently running: \(otherRunning.joined(separator: ", "))"
             }
             return msg
 
-        case .sessionStopped(let entries):
-            if entries.isEmpty {
+        case .sessionStopped(let sessions, let projects):
+            if sessions.isEmpty {
                 return "No timers currently running."
             }
-            if entries.count == 1 {
-                let e = entries[0]
-                return "Stopped \(e.name) (\(DurationFormat.formatted(e.duration)))"
+            let projectById = Dictionary(uniqueKeysWithValues: projects.map { ($0.id, $0) })
+            if sessions.count == 1 {
+                let s = sessions[0]
+                let name = projectById[s.projectId]?.name ?? "Unknown"
+                return "Stopped \(name) (\(DurationFormat.formatted(s.duration())))"
+            }
+            let entries = sessions.map { s in
+                (name: projectById[s.projectId]?.name ?? "Unknown", duration: s.duration())
             }
             let maxName = entries.map(\.name.count).max() ?? 0
             return entries.map { entry in
@@ -79,10 +96,10 @@ enum OutputFormatter {
         case .sessionStatus(let statuses):
             return Table.renderStatus(statuses)
 
-        case .sessionTodayTotals(let totals, let period):
+        case .sessionTodayTotals(let totals, let period, _, _):
             return Table.renderTodayTotals(totals, period: period)
 
-        case .sessionGrouped(let report, let period, let projectFilter, let hoursOnly):
+        case .sessionGrouped(let report, let period, let projectFilter, let hoursOnly, _, _):
             return Table.renderGrouped(report, period: period, projectFilter: projectFilter, hoursOnly: hoursOnly)
 
         case .sessionVerbose(let sessions, let period, let projectFilter):
@@ -100,8 +117,8 @@ enum OutputFormatter {
             }
             return Table.renderProjects(projects)
 
-        case .projectRenamed(let oldName, let newName):
-            return "Renamed \(oldName) → \(newName)"
+        case .projectRenamed(let oldName, let project):
+            return "Renamed \(oldName) → \(project.name)"
 
         case .dashboard(let data):
             return DashboardRenderer.render(data)

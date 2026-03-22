@@ -145,24 +145,52 @@ struct JSONOutputTests {
         #expect(obj["message"] as? String == "No sessions found.")
     }
 
-    // MARK: - Fallback cases
+    // MARK: - Session Started
 
-    @Test("sessionStarted falls back to text message in JSON")
-    func sessionStartedFallback() throws {
-        let result = CommandResult.sessionStarted(project: "Acme Corp", running: [])
+    @Test("sessionStarted returns session model")
+    func sessionStarted() throws {
+        let project = Project(id: 1, parentId: nil, name: "Acme Corp", slug: "acme-corp", createdAt: Date())
+        let session = Session(id: 10, projectId: 1, startTime: Date(), endTime: nil)
+        let result = CommandResult.sessionStarted(session: session, project: project, otherRunning: [])
         let json = OutputFormatter.formatJSON(result)
         assertValidJSON(json)
         let obj = try decode(json)
-        #expect(obj["message"] as? String == "Started Acme Corp")
+        let sessionJSON = obj["session"] as! [String: Any]
+        #expect(sessionJSON["id"] as? Int == 10)
+        #expect(sessionJSON["project_id"] as? Int == 1)
+        #expect(sessionJSON["end_time"] == nil)
     }
 
-    @Test("sessionStopped falls back to text message in JSON")
-    func sessionStoppedFallback() throws {
-        let result = CommandResult.sessionStopped(entries: [StopEntry(name: "Acme Corp", duration: 5400)])
+    // MARK: - Session Stopped
+
+    @Test("sessionStopped returns session models")
+    func sessionStopped() throws {
+        let project = Project(id: 1, parentId: nil, name: "Acme Corp", slug: "acme-corp", createdAt: Date())
+        let session = Session(id: 5, projectId: 1, startTime: Date().addingTimeInterval(-3600), endTime: Date())
+        let result = CommandResult.sessionStopped(sessions: [session], projects: [project])
         let json = OutputFormatter.formatJSON(result)
         assertValidJSON(json)
         let obj = try decode(json)
-        #expect((obj["message"] as? String)?.contains("Stopped") == true)
+        let sessions = obj["sessions"] as! [[String: Any]]
+        #expect(sessions.count == 1)
+        #expect(sessions[0]["id"] as? Int == 5)
+        #expect(sessions[0]["end_time"] as? String != nil)
+        let projects = obj["projects"] as! [[String: Any]]
+        #expect(projects[0]["name"] as? String == "Acme Corp")
+    }
+
+    // MARK: - Project Renamed
+
+    @Test("projectRenamed returns project model")
+    func projectRenamed() throws {
+        let project = Project(id: 1, parentId: nil, name: "New Name", slug: "new-name", createdAt: Date())
+        let result = CommandResult.projectRenamed(oldName: "old-name", project: project)
+        let json = OutputFormatter.formatJSON(result)
+        assertValidJSON(json)
+        let obj = try decode(json)
+        let projectJSON = obj["project"] as! [String: Any]
+        #expect(projectJSON["name"] as? String == "New Name")
+        #expect(projectJSON["slug"] as? String == "new-name")
     }
 
     // MARK: - Dates are ISO8601

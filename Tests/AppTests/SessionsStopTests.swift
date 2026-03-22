@@ -25,21 +25,22 @@ struct SessionsStopTests {
         return cmd
     }
 
-    @Test("stop with no running timers returns empty entries")
+    @Test("stop with no running timers returns empty sessions")
     func stopNoRunning() throws {
         let (ctx, _, _) = buildCtx()
 
         let cmd = makeStop()
         let result = try cmd.execute(ctx: ctx)
 
-        guard case .sessionStopped(let entries) = result else {
+        guard case .sessionStopped(let sessions, let projects) = result else {
             Issue.record("Expected .sessionStopped, got \(result)")
             return
         }
-        #expect(entries.isEmpty)
+        #expect(sessions.isEmpty)
+        #expect(projects.isEmpty)
     }
 
-    @Test("stop single running timer returns stopped entry")
+    @Test("stop single running timer returns stopped session")
     func stopSingleRunning() throws {
         let (ctx, projectRepo, sessionRepo) = buildCtx()
 
@@ -52,13 +53,15 @@ struct SessionsStopTests {
         let running = try sessionRepo.list(running: true)
         #expect(running.isEmpty)
 
-        guard case .sessionStopped(let entries) = result else {
+        guard case .sessionStopped(let sessions, let projects) = result else {
             Issue.record("Expected .sessionStopped, got \(result)")
             return
         }
-        #expect(entries.count == 1)
-        #expect(entries[0].name == "acme-corp")
-        #expect(entries[0].duration > 0)
+        #expect(sessions.count == 1)
+        #expect(sessions[0].endTime != nil)
+        #expect(!sessions[0].isRunning)
+        #expect(projects.count == 1)
+        #expect(projects[0].name == "acme-corp")
     }
 
     @Test("stop by project name stops only that project")
@@ -77,15 +80,15 @@ struct SessionsStopTests {
         #expect(running.count == 1)
         #expect(running[0].1.name == "project-b")
 
-        guard case .sessionStopped(let entries) = result else {
+        guard case .sessionStopped(let sessions, let projects) = result else {
             Issue.record("Expected .sessionStopped, got \(result)")
             return
         }
-        #expect(entries.count == 1)
-        #expect(entries[0].name == "project-a")
+        #expect(sessions.count == 1)
+        #expect(projects[0].name == "project-a")
     }
 
-    @Test("stop --all stops all running timers and returns all entries")
+    @Test("stop --all stops all running timers and returns all sessions")
     func stopAll() throws {
         let (ctx, projectRepo, sessionRepo) = buildCtx()
 
@@ -100,11 +103,12 @@ struct SessionsStopTests {
         let running = try sessionRepo.list(running: true)
         #expect(running.isEmpty)
 
-        guard case .sessionStopped(let entries) = result else {
+        guard case .sessionStopped(let sessions, _) = result else {
             Issue.record("Expected .sessionStopped, got \(result)")
             return
         }
-        #expect(entries.count == 2)
+        #expect(sessions.count == 2)
+        #expect(sessions.allSatisfy { !$0.isRunning })
     }
 
     @Test("stop by project name throws when project not found")
@@ -145,17 +149,17 @@ struct SessionsStopTests {
         #expect(!updated!.isRunning)
     }
 
-    @Test("stop --all with no running timers returns empty entries")
+    @Test("stop --all with no running timers returns empty sessions")
     func stopAllNoRunning() throws {
         let (ctx, _, _) = buildCtx()
 
         let cmd = makeStop(all: true)
         let result = try cmd.execute(ctx: ctx)
 
-        guard case .sessionStopped(let entries) = result else {
+        guard case .sessionStopped(let sessions, _) = result else {
             Issue.record("Expected .sessionStopped, got \(result)")
             return
         }
-        #expect(entries.isEmpty)
+        #expect(sessions.isEmpty)
     }
 }
