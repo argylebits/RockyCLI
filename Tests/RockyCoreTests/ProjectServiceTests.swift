@@ -19,7 +19,7 @@ struct ProjectServiceTests {
         let repo = MockProjectRepository()
         let service = ProjectService(repository: repo)
         _ = try service.create(name: "acme-corp")
-        #expect(throws: RockyCoreError.self) {
+        #expect(throws: RockyError.self) {
             try service.create(name: "acme-corp")
         }
     }
@@ -57,7 +57,7 @@ struct ProjectServiceTests {
     func renameNotFound() throws {
         let repo = MockProjectRepository()
         let service = ProjectService(repository: repo)
-        #expect(throws: RockyCoreError.self) {
+        #expect(throws: RockyError.self) {
             try service.rename(oldName: "ghost", newName: "new-name")
         }
     }
@@ -68,7 +68,7 @@ struct ProjectServiceTests {
         let service = ProjectService(repository: repo)
         _ = try repo.create(name: "acme-corp", slug: "acme-corp".slugified)
         _ = try repo.create(name: "existing", slug: "existing".slugified)
-        #expect(throws: RockyCoreError.self) {
+        #expect(throws: RockyError.self) {
             try service.rename(oldName: "acme-corp", newName: "existing")
         }
     }

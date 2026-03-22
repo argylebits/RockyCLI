@@ -66,7 +66,7 @@ public struct SQLiteSessionRepository: SessionRepository, Sendable {
                 let session = try Session(row: row)
                 let pCreatedAtString: String = row["p_created_at"]
                 guard let pCreatedAt = Date.fromISO8601(pCreatedAtString) else {
-                    throw RockyCoreError.invalidRow("projects")
+                    throw RockyError.invalidRow("projects")
                 }
                 let project = Project(
                     id: row["p_id"],

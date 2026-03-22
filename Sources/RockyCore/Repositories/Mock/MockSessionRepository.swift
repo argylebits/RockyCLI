@@ -48,7 +48,7 @@ public final class MockSessionRepository: SessionRepository, @unchecked Sendable
 
     public func update(id: Int, startTime: Date, endTime: Date?) throws -> Session {
         guard let index = sessions.firstIndex(where: { $0.id == id }) else {
-            throw RockyCoreError.sessionNotFound(id)
+            throw RockyError.sessionNotFound(id)
         }
         let updated = Session(id: id, projectId: sessions[index].projectId, startTime: startTime, endTime: endTime)
         sessions[index] = updated

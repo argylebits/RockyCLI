@@ -85,7 +85,7 @@ struct SessionsStopTests {
         let (ctx, _, _) = buildCtx()
 
         let cmd = makeStop(project: "nonexistent")
-        #expect(throws: (any Error).self) {
+        #expect(throws: RockyError.projectNotFound("nonexistent")) {
             try cmd.execute(ctx: ctx)
         }
     }
@@ -97,7 +97,7 @@ struct SessionsStopTests {
         _ = try projectRepo.create(name: "acme-corp", slug: "acme-corp")
 
         let cmd = makeStop(project: "acme-corp")
-        #expect(throws: (any Error).self) {
+        #expect(throws: RockyError.noTimerRunning("acme-corp")) {
             try cmd.execute(ctx: ctx)
         }
     }

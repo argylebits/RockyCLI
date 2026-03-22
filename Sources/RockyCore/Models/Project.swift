@@ -31,7 +31,7 @@ extension Project: FetchableRecord, TableRecord {
     public init(row: Row) throws {
         let createdAtString: String = row["created_at"]
         guard let createdAt = Date.fromISO8601(createdAtString) else {
-            throw RockyCoreError.invalidRow("projects")
+            throw RockyError.invalidRow("projects")
         }
         self.init(
             id: row["id"],
@@ -40,40 +40,5 @@ extension Project: FetchableRecord, TableRecord {
             slug: row["slug"],
             createdAt: createdAt
         )
-    }
-}
-
-public enum RockyCoreError: Error, CustomStringConvertible {
-    case invalidRow(String)
-    case projectNotFound(String)
-    case projectAlreadyExists(String)
-    case sessionNotFound(Int)
-    case cannotEditRunningSessionStop
-    case startTimeInFuture
-    case stopBeforeStart
-    case durationNotPositive
-    case overdetermined
-
-    public var description: String {
-        switch self {
-        case .invalidRow(let table):
-            return "Invalid row data in \(table) table"
-        case .projectNotFound(let name):
-            return "Project not found: \(name)"
-        case .projectAlreadyExists(let name):
-            return "Project already exists: \(name)"
-        case .sessionNotFound(let id):
-            return "No session found with ID \(id)."
-        case .cannotEditRunningSessionStop:
-            return "Cannot edit the stop time of a running session. Stop it first."
-        case .startTimeInFuture:
-            return "Start time cannot be in the future."
-        case .stopBeforeStart:
-            return "Stop time must be after start time."
-        case .durationNotPositive:
-            return "Duration must be positive."
-        case .overdetermined:
-            return "Cannot specify --start, --stop, and --duration together."
-        }
     }
 }

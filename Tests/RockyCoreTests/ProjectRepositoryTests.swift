@@ -18,7 +18,7 @@ struct MockProjectRepositoryTests {
     func createDuplicateSlug() throws {
         let repo = MockProjectRepository()
         _ = try repo.create(name: "acme-corp", slug: "acme-corp".slugified)
-        #expect(throws: RockyCoreError.self) {
+        #expect(throws: RockyError.self) {
             try repo.create(name: "ACME-CORP", slug: "ACME-CORP".slugified)
         }
     }
@@ -93,7 +93,7 @@ struct MockProjectRepositoryTests {
     @Test("update throws for unknown id")
     func updateUnknownId() throws {
         let repo = MockProjectRepository()
-        #expect(throws: RockyCoreError.self) {
+        #expect(throws: RockyError.self) {
             try repo.update(id: 999, name: "new-name", slug: "new-name".slugified)
         }
     }
@@ -103,7 +103,7 @@ struct MockProjectRepositoryTests {
         let repo = MockProjectRepository()
         let project = try repo.create(name: "acme-corp", slug: "acme-corp".slugified)
         _ = try repo.create(name: "existing", slug: "existing".slugified)
-        #expect(throws: RockyCoreError.self) {
+        #expect(throws: RockyError.self) {
             try repo.update(id: project.id, name: "existing", slug: "existing".slugified)
         }
     }

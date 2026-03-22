@@ -300,7 +300,7 @@ struct SessionRepositoryTests {
     func updateUnknownId() throws {
         let projectRepo = MockProjectRepository()
         let sessionRepo = MockSessionRepository(projectRepository: projectRepo)
-        #expect(throws: RockyCoreError.self) {
+        #expect(throws: RockyError.self) {
             try sessionRepo.update(id: 999, startTime: Date(), endTime: nil)
         }
     }

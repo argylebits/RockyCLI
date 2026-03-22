@@ -171,7 +171,7 @@ struct SessionsEditTests {
                            stop: dateString(Date().addingTimeInterval(-1800)),
                            duration: 1800)
 
-        #expect(throws: RockyCoreError.self) {
+        #expect(throws: RockyError.self) {
             try cmd.execute(ctx: ctx)
         }
     }
@@ -183,7 +183,7 @@ struct SessionsEditTests {
         let cmd = makeEdit(session: 999,
                            start: dateString(Date().addingTimeInterval(-3600)))
 
-        #expect(throws: RockyCoreError.self) {
+        #expect(throws: RockyError.self) {
             try cmd.execute(ctx: ctx)
         }
     }
@@ -199,7 +199,7 @@ struct SessionsEditTests {
         let cmd = makeEdit(session: session.id,
                            stop: dateString(Date().addingTimeInterval(-1800)))
 
-        #expect(throws: RockyCoreError.self) {
+        #expect(throws: RockyError.self) {
             try cmd.execute(ctx: ctx)
         }
     }
@@ -215,7 +215,7 @@ struct SessionsEditTests {
         let cmd = makeEdit(session: session.id,
                            start: dateString(Date().addingTimeInterval(7200)))
 
-        #expect(throws: RockyCoreError.self) {
+        #expect(throws: RockyError.self) {
             try cmd.execute(ctx: ctx)
         }
     }
@@ -232,7 +232,7 @@ struct SessionsEditTests {
                            start: dateString(Date().addingTimeInterval(-1800)),
                            stop: dateString(Date().addingTimeInterval(-3600)))
 
-        #expect(throws: RockyCoreError.self) {
+        #expect(throws: RockyError.self) {
             try cmd.execute(ctx: ctx)
         }
     }
@@ -247,7 +247,7 @@ struct SessionsEditTests {
 
         let cmd = makeEdit(session: session.id, duration: 0)
 
-        #expect(throws: RockyCoreError.self) {
+        #expect(throws: RockyError.self) {
             try cmd.execute(ctx: ctx)
         }
     }
@@ -262,7 +262,7 @@ struct SessionsEditTests {
 
         let cmd = makeEdit(session: session.id, duration: -600)
 
-        #expect(throws: RockyCoreError.self) {
+        #expect(throws: RockyError.self) {
             try cmd.execute(ctx: ctx)
         }
     }

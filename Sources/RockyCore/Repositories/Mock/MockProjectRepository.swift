@@ -8,7 +8,7 @@ public final class MockProjectRepository: ProjectRepository, @unchecked Sendable
 
     public func create(name: String, slug: String) throws -> Project {
         if let _ = try get(slug: slug) {
-            throw RockyCoreError.projectAlreadyExists(name)
+            throw RockyError.projectAlreadyExists(name)
         }
         let project = Project(id: nextId, parentId: nil, name: name, slug: slug, createdAt: Date().addingTimeInterval(Double(nextId)))
         nextId += 1
@@ -38,10 +38,10 @@ public final class MockProjectRepository: ProjectRepository, @unchecked Sendable
 
     public func update(id: Int, name: String, slug: String) throws -> Project {
         guard let index = projects.firstIndex(where: { $0.id == id }) else {
-            throw RockyCoreError.projectNotFound(String(id))
+            throw RockyError.projectNotFound(String(id))
         }
         if let existing = try get(slug: slug), existing.id != id {
-            throw RockyCoreError.projectAlreadyExists(name)
+            throw RockyError.projectAlreadyExists(name)
         }
         let updated = Project(id: id, parentId: projects[index].parentId, name: name, slug: slug, createdAt: projects[index].createdAt)
         projects[index] = updated
