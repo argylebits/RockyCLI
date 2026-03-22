@@ -12,10 +12,13 @@ struct Stop: ParsableCommand {
     @Flag(name: .long, help: "Stop all running timers.")
     var all: Bool = false
 
+    @OptionGroup var outputOptions: OutputOptions
+
     func run() throws {
         var cmd = Sessions.Stop()
         cmd.project = project
         cmd.all = all
+        cmd.outputOptions = outputOptions
         try cmd.run()
     }
 }

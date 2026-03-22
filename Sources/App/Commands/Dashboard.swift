@@ -7,13 +7,17 @@ struct Dashboard: ParsableCommand {
         abstract: "Show an analytics dashboard with trends and insights."
     )
 
+    @OptionGroup var outputOptions: OutputOptions
+
     func run() throws {
         let ctx = try AppContext.build()
-        try execute(ctx: ctx)
+        let result = try execute(ctx: ctx)
+        output(result, options: outputOptions)
     }
 
-    func execute(ctx: AppContext) throws {
+    @discardableResult
+    func execute(ctx: AppContext) throws -> CommandResult {
         let data = try ctx.dashboardService.generate()
-        output(DashboardRenderer.render(data))
+        return .dashboard(data: data)
     }
 }

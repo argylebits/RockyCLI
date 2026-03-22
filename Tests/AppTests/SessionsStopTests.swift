@@ -25,15 +25,21 @@ struct SessionsStopTests {
         return cmd
     }
 
-    @Test("stop with no running timers does not throw")
+    @Test("stop with no running timers returns empty entries")
     func stopNoRunning() throws {
         let (ctx, _, _) = buildCtx()
 
         let cmd = makeStop()
-        try cmd.execute(ctx: ctx)
+        let result = try cmd.execute(ctx: ctx)
+
+        guard case .sessionStopped(let entries) = result else {
+            Issue.record("Expected .sessionStopped, got \(result)")
+            return
+        }
+        #expect(entries.isEmpty)
     }
 
-    @Test("stop single running timer stops it")
+    @Test("stop single running timer returns stopped entry")
     func stopSingleRunning() throws {
         let (ctx, projectRepo, sessionRepo) = buildCtx()
 
@@ -41,10 +47,18 @@ struct SessionsStopTests {
         _ = try sessionRepo.create(projectId: proj.id, startTime: Date().addingTimeInterval(-3600), endTime: nil)
 
         let cmd = makeStop()
-        try cmd.execute(ctx: ctx)
+        let result = try cmd.execute(ctx: ctx)
 
         let running = try sessionRepo.list(running: true)
         #expect(running.isEmpty)
+
+        guard case .sessionStopped(let entries) = result else {
+            Issue.record("Expected .sessionStopped, got \(result)")
+            return
+        }
+        #expect(entries.count == 1)
+        #expect(entries[0].name == "acme-corp")
+        #expect(entries[0].duration > 0)
     }
 
     @Test("stop by project name stops only that project")
@@ -57,14 +71,21 @@ struct SessionsStopTests {
         _ = try sessionRepo.create(projectId: proj2.id, startTime: Date().addingTimeInterval(-1800), endTime: nil)
 
         let cmd = makeStop(project: "project-a")
-        try cmd.execute(ctx: ctx)
+        let result = try cmd.execute(ctx: ctx)
 
         let running = try sessionRepo.list(running: true)
         #expect(running.count == 1)
         #expect(running[0].1.name == "project-b")
+
+        guard case .sessionStopped(let entries) = result else {
+            Issue.record("Expected .sessionStopped, got \(result)")
+            return
+        }
+        #expect(entries.count == 1)
+        #expect(entries[0].name == "project-a")
     }
 
-    @Test("stop --all stops all running timers")
+    @Test("stop --all stops all running timers and returns all entries")
     func stopAll() throws {
         let (ctx, projectRepo, sessionRepo) = buildCtx()
 
@@ -74,10 +95,16 @@ struct SessionsStopTests {
         _ = try sessionRepo.create(projectId: proj2.id, startTime: Date().addingTimeInterval(-1800), endTime: nil)
 
         let cmd = makeStop(all: true)
-        try cmd.execute(ctx: ctx)
+        let result = try cmd.execute(ctx: ctx)
 
         let running = try sessionRepo.list(running: true)
         #expect(running.isEmpty)
+
+        guard case .sessionStopped(let entries) = result else {
+            Issue.record("Expected .sessionStopped, got \(result)")
+            return
+        }
+        #expect(entries.count == 2)
     }
 
     @Test("stop by project name throws when project not found")
@@ -110,7 +137,7 @@ struct SessionsStopTests {
         let session = try sessionRepo.create(projectId: proj.id, startTime: Date().addingTimeInterval(-3600), endTime: nil)
 
         let cmd = makeStop()
-        try cmd.execute(ctx: ctx)
+        _ = try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: session.id)
         #expect(updated != nil)
@@ -118,11 +145,17 @@ struct SessionsStopTests {
         #expect(!updated!.isRunning)
     }
 
-    @Test("stop --all with no running timers does not throw")
+    @Test("stop --all with no running timers returns empty entries")
     func stopAllNoRunning() throws {
         let (ctx, _, _) = buildCtx()
 
         let cmd = makeStop(all: true)
-        try cmd.execute(ctx: ctx)
+        let result = try cmd.execute(ctx: ctx)
+
+        guard case .sessionStopped(let entries) = result else {
+            Issue.record("Expected .sessionStopped, got \(result)")
+            return
+        }
+        #expect(entries.isEmpty)
     }
 }

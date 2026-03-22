@@ -19,17 +19,24 @@ struct SessionsStartTests {
         return (ctx, projectRepo, sessionRepo)
     }
 
-    @Test("start creates project on first use")
+    @Test("start creates project and returns started result")
     func startCreatesProject() throws {
         let (ctx, projectRepo, _) = buildCtx()
 
         var cmd = Sessions.Start()
         cmd.project = "acme-corp"
-        try cmd.execute(ctx: ctx)
+        let result = try cmd.execute(ctx: ctx)
 
         let projects = try projectRepo.list()
         #expect(projects.count == 1)
         #expect(projects[0].name == "acme-corp")
+
+        guard case .sessionStarted(let project, let running) = result else {
+            Issue.record("Expected .sessionStarted, got \(result)")
+            return
+        }
+        #expect(project == "acme-corp")
+        #expect(running.isEmpty)
     }
 
     @Test("start reuses existing project")
@@ -40,10 +47,16 @@ struct SessionsStartTests {
 
         var cmd = Sessions.Start()
         cmd.project = "acme-corp"
-        try cmd.execute(ctx: ctx)
+        let result = try cmd.execute(ctx: ctx)
 
         let projects = try projectRepo.list()
         #expect(projects.count == 1)
+
+        guard case .sessionStarted(let project, _) = result else {
+            Issue.record("Expected .sessionStarted, got \(result)")
+            return
+        }
+        #expect(project == "acme-corp")
     }
 
     @Test("start creates a running session")
@@ -52,7 +65,7 @@ struct SessionsStartTests {
 
         var cmd = Sessions.Start()
         cmd.project = "acme-corp"
-        try cmd.execute(ctx: ctx)
+        _ = try cmd.execute(ctx: ctx)
 
         let running = try sessionRepo.list(running: true)
         #expect(running.count == 1)
@@ -83,7 +96,7 @@ struct SessionsStartTests {
 
         var cmd = Sessions.Start()
         cmd.project = "acme-corp"
-        try cmd.execute(ctx: ctx)
+        _ = try cmd.execute(ctx: ctx)
 
         let running = try sessionRepo.list(running: true, projectId: proj.id)
         #expect(running.count == 2)
@@ -98,9 +111,16 @@ struct SessionsStartTests {
 
         var cmd = Sessions.Start()
         cmd.project = "project-b"
-        try cmd.execute(ctx: ctx)
+        let result = try cmd.execute(ctx: ctx)
 
         let running = try sessionRepo.list(running: true)
         #expect(running.count == 2)
+
+        guard case .sessionStarted(let project, let otherRunning) = result else {
+            Issue.record("Expected .sessionStarted, got \(result)")
+            return
+        }
+        #expect(project == "project-b")
+        #expect(otherRunning.contains("project-a"))
     }
 }

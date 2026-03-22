@@ -12,20 +12,18 @@ struct Projects: ParsableCommand {
             abstract: "List all projects."
         )
 
+        @OptionGroup var outputOptions: OutputOptions
+
         func run() throws {
             let ctx = try AppContext.build()
-            try execute(ctx: ctx)
+            let result = try execute(ctx: ctx)
+            output(result, options: outputOptions)
         }
 
-        func execute(ctx: AppContext) throws {
+        @discardableResult
+        func execute(ctx: AppContext) throws -> CommandResult {
             let projects = try ctx.projectService.list()
-
-            if projects.isEmpty {
-                output("No projects found.")
-                return
-            }
-
-            output(Table.renderProjects(projects))
+            return .projectList(projects: projects)
         }
     }
 
@@ -40,14 +38,18 @@ struct Projects: ParsableCommand {
         @Argument(help: "The new project name.")
         var newName: String
 
+        @OptionGroup var outputOptions: OutputOptions
+
         func run() throws {
             let ctx = try AppContext.build()
-            try execute(ctx: ctx)
+            let result = try execute(ctx: ctx)
+            output(result, options: outputOptions)
         }
 
-        func execute(ctx: AppContext) throws {
+        @discardableResult
+        func execute(ctx: AppContext) throws -> CommandResult {
             let renamed = try ctx.projectService.rename(oldName: oldName, newName: newName)
-            output("Renamed \(oldName) → \(renamed.name)")
+            return .projectRenamed(oldName: oldName, newName: renamed.name)
         }
     }
 }
