@@ -41,6 +41,10 @@ struct SessionsEditTests {
         return cmd
     }
 
+    private func dateString(_ date: Date) -> String {
+        editDateFormatter.string(from: date)
+    }
+
     // MARK: - Flag resolution
 
     @Test("edit with --start only updates start, keeps stop")
@@ -51,13 +55,14 @@ struct SessionsEditTests {
         let originalStop = Date().addingTimeInterval(-3600)
         let session = try sessionRepo.create(projectId: proj.id, startTime: originalStart, endTime: originalStop)
 
-        let newStart = Date().addingTimeInterval(-5400)
-        let cmd = makeEdit(session: session.id, start: editDateFormatter.string(from:newStart))
+        let newStartStr = dateString(Date().addingTimeInterval(-5400))
+        let cmd = makeEdit(session: session.id, start: newStartStr)
         try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: session.id)!
-        #expect(abs(updated.startTime.timeIntervalSince(newStart)) < 60)
-        #expect(abs(updated.endTime!.timeIntervalSince(originalStop)) < 1)
+        let expectedStart = try DateTimeFormat.parse(newStartStr)
+        #expect(updated.startTime == expectedStart)
+        #expect(updated.endTime == originalStop)
     }
 
     @Test("edit with --stop only updates stop, keeps start")
@@ -68,13 +73,14 @@ struct SessionsEditTests {
         let originalStop = Date().addingTimeInterval(-3600)
         let session = try sessionRepo.create(projectId: proj.id, startTime: originalStart, endTime: originalStop)
 
-        let newStop = Date().addingTimeInterval(-1800)
-        let cmd = makeEdit(session: session.id, stop: editDateFormatter.string(from:newStop))
+        let newStopStr = dateString(Date().addingTimeInterval(-1800))
+        let cmd = makeEdit(session: session.id, stop: newStopStr)
         try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: session.id)!
-        #expect(abs(updated.startTime.timeIntervalSince(originalStart)) < 1)
-        #expect(abs(updated.endTime!.timeIntervalSince(newStop)) < 60)
+        #expect(updated.startTime == originalStart)
+        let expectedStop = try DateTimeFormat.parse(newStopStr)
+        #expect(updated.endTime == expectedStop)
     }
 
     @Test("edit with --start and --stop updates both")
@@ -85,16 +91,16 @@ struct SessionsEditTests {
                                              startTime: Date().addingTimeInterval(-7200),
                                              endTime: Date().addingTimeInterval(-3600))
 
-        let newStart = Date().addingTimeInterval(-5400)
-        let newStop = Date().addingTimeInterval(-1800)
-        let cmd = makeEdit(session: session.id,
-                           start: editDateFormatter.string(from:newStart),
-                           stop: editDateFormatter.string(from:newStop))
+        let newStartStr = dateString(Date().addingTimeInterval(-5400))
+        let newStopStr = dateString(Date().addingTimeInterval(-1800))
+        let cmd = makeEdit(session: session.id, start: newStartStr, stop: newStopStr)
         try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: session.id)!
-        #expect(abs(updated.startTime.timeIntervalSince(newStart)) < 60)
-        #expect(abs(updated.endTime!.timeIntervalSince(newStop)) < 60)
+        let expectedStart = try DateTimeFormat.parse(newStartStr)
+        let expectedStop = try DateTimeFormat.parse(newStopStr)
+        #expect(updated.startTime == expectedStart)
+        #expect(updated.endTime == expectedStop)
     }
 
     @Test("edit with --duration only keeps start, computes stop")
@@ -110,9 +116,8 @@ struct SessionsEditTests {
         try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: session.id)!
-        #expect(abs(updated.startTime.timeIntervalSince(originalStart)) < 1)
-        let expectedStop = originalStart.addingTimeInterval(1800)
-        #expect(abs(updated.endTime!.timeIntervalSince(expectedStop)) < 1)
+        #expect(updated.startTime == originalStart)
+        #expect(updated.endTime == originalStart.addingTimeInterval(1800))
     }
 
     @Test("edit with --start and --duration sets start and computes stop")
@@ -123,16 +128,14 @@ struct SessionsEditTests {
                                              startTime: Date().addingTimeInterval(-7200),
                                              endTime: Date().addingTimeInterval(-3600))
 
-        let newStart = Date().addingTimeInterval(-5400)
-        let cmd = makeEdit(session: session.id,
-                           start: editDateFormatter.string(from:newStart),
-                           duration: 1800)
+        let newStartStr = dateString(Date().addingTimeInterval(-5400))
+        let cmd = makeEdit(session: session.id, start: newStartStr, duration: 1800)
         try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: session.id)!
-        #expect(abs(updated.startTime.timeIntervalSince(newStart)) < 60)
-        let expectedStop = newStart.addingTimeInterval(1800)
-        #expect(abs(updated.endTime!.timeIntervalSince(expectedStop)) < 60)
+        let expectedStart = try DateTimeFormat.parse(newStartStr)
+        #expect(updated.startTime == expectedStart)
+        #expect(updated.endTime == expectedStart.addingTimeInterval(1800))
     }
 
     @Test("edit with --stop and --duration sets stop and computes start")
@@ -143,16 +146,14 @@ struct SessionsEditTests {
                                    startTime: Date().addingTimeInterval(-7200),
                                    endTime: Date().addingTimeInterval(-3600))
 
-        let newStop = Date().addingTimeInterval(-1800)
-        let cmd = makeEdit(session: 1,
-                           stop: editDateFormatter.string(from:newStop),
-                           duration: 1800)
+        let newStopStr = dateString(Date().addingTimeInterval(-1800))
+        let cmd = makeEdit(session: 1, stop: newStopStr, duration: 1800)
         try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: 1)!
-        let expectedStart = newStop.addingTimeInterval(-1800)
-        #expect(abs(updated.startTime.timeIntervalSince(expectedStart)) < 60)
-        #expect(abs(updated.endTime!.timeIntervalSince(newStop)) < 60)
+        let expectedStop = try DateTimeFormat.parse(newStopStr)
+        #expect(updated.startTime == expectedStop.addingTimeInterval(-1800))
+        #expect(updated.endTime == expectedStop)
     }
 
     // MARK: - Error cases
@@ -166,8 +167,8 @@ struct SessionsEditTests {
                                    endTime: Date().addingTimeInterval(-3600))
 
         let cmd = makeEdit(session: 1,
-                           start: editDateFormatter.string(from:Date().addingTimeInterval(-5400)),
-                           stop: editDateFormatter.string(from:Date().addingTimeInterval(-1800)),
+                           start: dateString(Date().addingTimeInterval(-5400)),
+                           stop: dateString(Date().addingTimeInterval(-1800)),
                            duration: 1800)
 
         #expect(throws: RockyCoreError.self) {
@@ -180,7 +181,7 @@ struct SessionsEditTests {
         let (ctx, _, _) = buildCtx()
 
         let cmd = makeEdit(session: 999,
-                           start: editDateFormatter.string(from:Date().addingTimeInterval(-3600)))
+                           start: dateString(Date().addingTimeInterval(-3600)))
 
         #expect(throws: RockyCoreError.self) {
             try cmd.execute(ctx: ctx)
@@ -196,7 +197,7 @@ struct SessionsEditTests {
                                              endTime: nil)
 
         let cmd = makeEdit(session: session.id,
-                           stop: editDateFormatter.string(from:Date().addingTimeInterval(-1800)))
+                           stop: dateString(Date().addingTimeInterval(-1800)))
 
         #expect(throws: RockyCoreError.self) {
             try cmd.execute(ctx: ctx)
@@ -212,7 +213,7 @@ struct SessionsEditTests {
                                              endTime: Date().addingTimeInterval(-3600))
 
         let cmd = makeEdit(session: session.id,
-                           start: editDateFormatter.string(from:Date().addingTimeInterval(7200)))
+                           start: dateString(Date().addingTimeInterval(7200)))
 
         #expect(throws: RockyCoreError.self) {
             try cmd.execute(ctx: ctx)
@@ -228,8 +229,8 @@ struct SessionsEditTests {
                                              endTime: Date().addingTimeInterval(-3600))
 
         let cmd = makeEdit(session: session.id,
-                           start: editDateFormatter.string(from:Date().addingTimeInterval(-1800)),
-                           stop: editDateFormatter.string(from:Date().addingTimeInterval(-3600)))
+                           start: dateString(Date().addingTimeInterval(-1800)),
+                           stop: dateString(Date().addingTimeInterval(-3600)))
 
         #expect(throws: RockyCoreError.self) {
             try cmd.execute(ctx: ctx)
@@ -274,13 +275,13 @@ struct SessionsEditTests {
                                              startTime: Date().addingTimeInterval(-3600),
                                              endTime: nil)
 
-        let newStart = Date().addingTimeInterval(-7200)
-        let cmd = makeEdit(session: session.id,
-                           start: editDateFormatter.string(from:newStart))
+        let newStartStr = dateString(Date().addingTimeInterval(-7200))
+        let cmd = makeEdit(session: session.id, start: newStartStr)
         try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: session.id)!
-        #expect(abs(updated.startTime.timeIntervalSince(newStart)) < 60)
+        let expectedStart = try DateTimeFormat.parse(newStartStr)
+        #expect(updated.startTime == expectedStart)
         #expect(updated.isRunning)
     }
 
@@ -301,9 +302,8 @@ struct SessionsEditTests {
         try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: session.id)!
-        #expect(abs(updated.startTime.timeIntervalSince(startTime)) < 1)
-        let expectedStop = startTime.addingTimeInterval(10800)
-        #expect(abs(updated.endTime!.timeIntervalSince(expectedStop)) < 1)
+        #expect(updated.startTime == startTime)
+        #expect(updated.endTime == startTime.addingTimeInterval(10800))
     }
 
     @Test("edit with no flags and --session returns session unchanged")
@@ -319,7 +319,7 @@ struct SessionsEditTests {
         try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: session.id)!
-        #expect(abs(updated.startTime.timeIntervalSince(originalStart)) < 1)
-        #expect(abs(updated.endTime!.timeIntervalSince(originalStop)) < 1)
+        #expect(updated.startTime == originalStart)
+        #expect(updated.endTime == originalStop)
     }
 }
