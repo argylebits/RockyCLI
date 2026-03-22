@@ -6,6 +6,6 @@ struct Rocky: ParsableCommand {
         commandName: "rocky",
         abstract: "A CLI time tracking tool.",
         version: rockyVersion,
-        subcommands: [Start.self, Stop.self, Status.self, Edit.self, Dashboard.self, Config.self, Projects.self]
+        subcommands: [Sessions.self, Start.self, Stop.self, Status.self, Dashboard.self, Config.self, Projects.self]
     )
 }
