@@ -18,12 +18,14 @@ struct Sessions: ParsableCommand {
 
         func run() throws {
             let ctx = try AppContext.build()
+            try execute(ctx: ctx)
+        }
 
+        func execute(ctx: AppContext) throws {
             let proj = try ctx.projectService.get(name: project)
                 ?? ctx.projectService.create(name: project)
 
-            let autoStop = try ConfigFile.getBool("auto-stop", default: true)
-            if autoStop, try !ctx.sessionService.list(running: true, projectId: proj.id).isEmpty {
+            if ctx.config.autoStop, try !ctx.sessionService.list(running: true, projectId: proj.id).isEmpty {
                 throw ValidationError("Timer already running for \(proj.name)")
             }
 
@@ -52,7 +54,10 @@ struct Sessions: ParsableCommand {
 
         func run() throws {
             let ctx = try AppContext.build()
+            try execute(ctx: ctx)
+        }
 
+        func execute(ctx: AppContext) throws {
             if all {
                 try stopAll(ctx: ctx)
                 return
@@ -172,7 +177,10 @@ struct Sessions: ParsableCommand {
 
         func run() throws {
             let ctx = try AppContext.build()
+            try execute(ctx: ctx)
+        }
 
+        func execute(ctx: AppContext) throws {
             let calendar = Calendar.current
 
             // Resolve project filter
@@ -335,7 +343,10 @@ struct Sessions: ParsableCommand {
 
         func run() throws {
             let ctx = try AppContext.build()
+            try execute(ctx: ctx)
+        }
 
+        func execute(ctx: AppContext) throws {
             if let sessionId = session {
                 try nonInteractive(sessionId: sessionId, ctx: ctx)
             } else if let projectName = project {

@@ -14,6 +14,10 @@ struct Projects: ParsableCommand {
 
         func run() throws {
             let ctx = try AppContext.build()
+            try execute(ctx: ctx)
+        }
+
+        func execute(ctx: AppContext) throws {
             let projects = try ctx.projectService.list()
 
             if projects.isEmpty {
@@ -38,6 +42,10 @@ struct Projects: ParsableCommand {
 
         func run() throws {
             let ctx = try AppContext.build()
+            try execute(ctx: ctx)
+        }
+
+        func execute(ctx: AppContext) throws {
             let renamed = try ctx.projectService.rename(oldName: oldName, newName: newName)
             output("Renamed \(oldName) → \(renamed.name)")
         }

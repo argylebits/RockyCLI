@@ -9,7 +9,10 @@ struct Dashboard: ParsableCommand {
 
     func run() throws {
         let ctx = try AppContext.build()
+        try execute(ctx: ctx)
+    }
 
+    func execute(ctx: AppContext) throws {
         let data = try ctx.dashboardService.generate()
         output(DashboardRenderer.render(data))
     }
