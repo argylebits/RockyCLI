@@ -4,24 +4,24 @@ public enum RockyError: Error, Equatable, CustomStringConvertible {
     // Row mapping
     case invalidRow(String)
 
-    // Projects
+    // Project
     case projectNotFound(String)
     case projectAlreadyExists(String)
 
-    // Sessions
+    // Session
     case sessionNotFound(Int)
-    case cannotEditRunningSessionStop
-    case startTimeInFuture
-    case stopBeforeStart
-    case durationNotPositive
-    case overdetermined
+    case sessionTimerAlreadyRunning(String)
+    case sessionNoTimerRunning(String?)
+    case sessionRunningSessionStop
+    case sessionStartTimeInFuture
+    case sessionStopBeforeStart
+    case sessionDurationNotPositive
+    case sessionOverdetermined
+    case sessionInvalidDateFormat(String)
+    case sessionInputCancelled
+    case sessionMissingArgument(String)
 
-    // Runtime (absorbed from ValidationError)
-    case timerAlreadyRunning(String)
-    case noTimerRunning(String?)
-    case invalidDateFormat(String)
-    case inputCancelled
-    case missingArgument(String)
+    // Config
     case configKeyNotSet(String)
 
     public var description: String {
@@ -34,28 +34,28 @@ public enum RockyError: Error, Equatable, CustomStringConvertible {
             return "Project already exists: \(name)"
         case .sessionNotFound(let id):
             return "No session found with ID \(id)."
-        case .cannotEditRunningSessionStop:
-            return "Cannot edit the stop time of a running session. Stop it first."
-        case .startTimeInFuture:
-            return "Start time cannot be in the future."
-        case .stopBeforeStart:
-            return "Stop time must be after start time."
-        case .durationNotPositive:
-            return "Duration must be positive."
-        case .overdetermined:
-            return "Cannot specify --start, --stop, and --duration together."
-        case .timerAlreadyRunning(let name):
+        case .sessionTimerAlreadyRunning(let name):
             return "Timer already running for \(name)"
-        case .noTimerRunning(let name):
+        case .sessionNoTimerRunning(let name):
             if let name {
                 return "No timer running for \(name)."
             }
             return "No timers currently running."
-        case .invalidDateFormat(let input):
+        case .sessionRunningSessionStop:
+            return "Cannot edit the stop time of a running session. Stop it first."
+        case .sessionStartTimeInFuture:
+            return "Start time cannot be in the future."
+        case .sessionStopBeforeStart:
+            return "Stop time must be after start time."
+        case .sessionDurationNotPositive:
+            return "Duration must be positive."
+        case .sessionOverdetermined:
+            return "Cannot specify --start, --stop, and --duration together."
+        case .sessionInvalidDateFormat(let input):
             return "Invalid date format: \(input). Use YYYY-MM-DD."
-        case .inputCancelled:
+        case .sessionInputCancelled:
             return "Input cancelled."
-        case .missingArgument(let detail):
+        case .sessionMissingArgument(let detail):
             return detail
         case .configKeyNotSet(let key):
             return "Key \"\(key)\" is not set."
