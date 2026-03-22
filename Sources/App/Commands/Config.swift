@@ -14,12 +14,20 @@ struct Config: ParsableCommand {
         @Argument(help: "The config key to read.")
         var key: String
 
+        @OptionGroup var outputOptions: OutputOptions
+
         func run() throws {
+            let result = try execute()
+            output(result, options: outputOptions)
+        }
+
+        @discardableResult
+        func execute() throws -> CommandResult {
             let config = try ConfigFile.load()
             guard let value = config[key] else {
                 throw RockyError.configKeyNotSet(key)
             }
-            print("\(key) = \(value)")
+            return .configValue(key: key, value: value)
         }
     }
 
@@ -32,27 +40,37 @@ struct Config: ParsableCommand {
         @Argument(help: "The value to set.")
         var value: String
 
+        @OptionGroup var outputOptions: OutputOptions
+
         func run() throws {
+            let result = try execute()
+            output(result, options: outputOptions)
+        }
+
+        @discardableResult
+        func execute() throws -> CommandResult {
             var config = try ConfigFile.load()
             config[key] = value
             try ConfigFile.save(config)
-            print("\(key) = \(value)")
+            return .configValue(key: key, value: value)
         }
     }
 
     struct List: ParsableCommand {
         static let configuration = CommandConfiguration(abstract: "List all config values.")
 
+        @OptionGroup var outputOptions: OutputOptions
+
         func run() throws {
+            let result = try execute()
+            output(result, options: outputOptions)
+        }
+
+        @discardableResult
+        func execute() throws -> CommandResult {
             let config = try ConfigFile.load()
-            if config.isEmpty {
-                print("No config values set. Defaults:")
-                print("  auto-stop = true")
-                return
-            }
-            for (key, value) in config.sorted(by: { $0.key < $1.key }) {
-                print("  \(key) = \(value)")
-            }
+            let entries = config.sorted(by: { $0.key < $1.key }).map { (key: $0.key, value: $0.value) }
+            return .configList(entries: entries)
         }
     }
 }

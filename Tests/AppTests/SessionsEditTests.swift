@@ -57,12 +57,18 @@ struct SessionsEditTests {
 
         let newStartStr = dateString(Date().addingTimeInterval(-5400))
         let cmd = makeEdit(session: session.id, start: newStartStr)
-        try cmd.execute(ctx: ctx)
+        let result = try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: session.id)!
         let expectedStart = try DateTimeFormat.parse(newStartStr)
         #expect(updated.startTime == expectedStart)
         #expect(updated.endTime == originalStop)
+
+        guard case .sessionEdited(let session) = result else {
+            Issue.record("Expected .sessionEdited, got \(result)")
+            return
+        }
+        #expect(session.startTime == expectedStart)
     }
 
     @Test("edit with --stop only updates stop, keeps start")
@@ -75,12 +81,17 @@ struct SessionsEditTests {
 
         let newStopStr = dateString(Date().addingTimeInterval(-1800))
         let cmd = makeEdit(session: session.id, stop: newStopStr)
-        try cmd.execute(ctx: ctx)
+        let result = try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: session.id)!
         #expect(updated.startTime == originalStart)
         let expectedStop = try DateTimeFormat.parse(newStopStr)
         #expect(updated.endTime == expectedStop)
+
+        guard case .sessionEdited = result else {
+            Issue.record("Expected .sessionEdited, got \(result)")
+            return
+        }
     }
 
     @Test("edit with --start and --stop updates both")
@@ -94,7 +105,7 @@ struct SessionsEditTests {
         let newStartStr = dateString(Date().addingTimeInterval(-5400))
         let newStopStr = dateString(Date().addingTimeInterval(-1800))
         let cmd = makeEdit(session: session.id, start: newStartStr, stop: newStopStr)
-        try cmd.execute(ctx: ctx)
+        _ = try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: session.id)!
         let expectedStart = try DateTimeFormat.parse(newStartStr)
@@ -113,7 +124,7 @@ struct SessionsEditTests {
                                              endTime: Date().addingTimeInterval(-3600))
 
         let cmd = makeEdit(session: session.id, duration: 1800)
-        try cmd.execute(ctx: ctx)
+        _ = try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: session.id)!
         #expect(updated.startTime == originalStart)
@@ -130,7 +141,7 @@ struct SessionsEditTests {
 
         let newStartStr = dateString(Date().addingTimeInterval(-5400))
         let cmd = makeEdit(session: session.id, start: newStartStr, duration: 1800)
-        try cmd.execute(ctx: ctx)
+        _ = try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: session.id)!
         let expectedStart = try DateTimeFormat.parse(newStartStr)
@@ -148,7 +159,7 @@ struct SessionsEditTests {
 
         let newStopStr = dateString(Date().addingTimeInterval(-1800))
         let cmd = makeEdit(session: 1, stop: newStopStr, duration: 1800)
-        try cmd.execute(ctx: ctx)
+        _ = try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: 1)!
         let expectedStop = try DateTimeFormat.parse(newStopStr)
@@ -277,7 +288,7 @@ struct SessionsEditTests {
 
         let newStartStr = dateString(Date().addingTimeInterval(-7200))
         let cmd = makeEdit(session: session.id, start: newStartStr)
-        try cmd.execute(ctx: ctx)
+        _ = try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: session.id)!
         let expectedStart = try DateTimeFormat.parse(newStartStr)
@@ -299,7 +310,7 @@ struct SessionsEditTests {
                                              startTime: startTime, endTime: endTime)
 
         let cmd = makeEdit(session: session.id, duration: 10800) // 3 hours
-        try cmd.execute(ctx: ctx)
+        _ = try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: session.id)!
         #expect(updated.startTime == startTime)
@@ -316,10 +327,16 @@ struct SessionsEditTests {
                                              startTime: originalStart, endTime: originalStop)
 
         let cmd = makeEdit(session: session.id)
-        try cmd.execute(ctx: ctx)
+        let result = try cmd.execute(ctx: ctx)
 
         let updated = try sessionRepo.get(id: session.id)!
         #expect(updated.startTime == originalStart)
         #expect(updated.endTime == originalStop)
+
+        guard case .sessionEdited(let returnedSession) = result else {
+            Issue.record("Expected .sessionEdited, got \(result)")
+            return
+        }
+        #expect(returnedSession.startTime == originalStart)
     }
 }

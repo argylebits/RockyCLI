@@ -16,12 +16,16 @@ struct Sessions: ParsableCommand {
         @Argument(help: "The project name to start tracking.")
         var project: String
 
+        @OptionGroup var outputOptions: OutputOptions
+
         func run() throws {
             let ctx = try AppContext.build()
-            try execute(ctx: ctx)
+            let result = try execute(ctx: ctx)
+            output(result, options: outputOptions)
         }
 
-        func execute(ctx: AppContext) throws {
+        @discardableResult
+        func execute(ctx: AppContext) throws -> CommandResult {
             let proj = try ctx.projectService.get(name: project)
                 ?? ctx.projectService.create(name: project)
 
@@ -31,13 +35,9 @@ struct Sessions: ParsableCommand {
 
             try ctx.sessionService.create(projectId: proj.id)
 
-            var message = "Started \(proj.name)"
             let running = try ctx.sessionService.list(running: true)
-            if running.count > 1 {
-                let names = running.map(\.1.name).joined(separator: ", ")
-                message += "\nCurrently running: \(names)"
-            }
-            output(message)
+            let otherRunning = running.filter { $0.1.slug != proj.slug }.map(\.1.name)
+            return .sessionStarted(project: proj.name, running: otherRunning)
         }
     }
 
@@ -52,35 +52,35 @@ struct Sessions: ParsableCommand {
         @Flag(name: .long, help: "Stop all running timers.")
         var all: Bool = false
 
+        @OptionGroup var outputOptions: OutputOptions
+
         func run() throws {
             let ctx = try AppContext.build()
-            try execute(ctx: ctx)
+            let result = try execute(ctx: ctx)
+            output(result, options: outputOptions)
         }
 
-        func execute(ctx: AppContext) throws {
+        @discardableResult
+        func execute(ctx: AppContext) throws -> CommandResult {
             if all {
-                try stopAll(ctx: ctx)
-                return
+                return try stopAll(ctx: ctx)
             }
 
             if let projectName = project {
-                try stopProject(name: projectName, ctx: ctx)
-                return
+                return try stopProject(name: projectName, ctx: ctx)
             }
 
             // No args — check running timers
             let running = try ctx.sessionService.list(running: true)
 
             if running.isEmpty {
-                output("No timers currently running.")
-                return
+                return .sessionStopped(entries: [])
             }
 
             if running.count == 1 {
                 let (session, proj) = running[0]
                 let stopped = try ctx.sessionService.update(id: session.id, startTime: session.startTime, endTime: Date())
-                output("Stopped \(proj.name) (\(DurationFormat.formatted(stopped.duration())))")
-                return
+                return .sessionStopped(entries: [StopEntry(name: proj.name, duration: stopped.duration())])
             }
 
             // Multiple running — interactive prompt
@@ -96,22 +96,20 @@ struct Sessions: ParsableCommand {
                 let input = line.trimmingCharacters(in: .whitespaces)
 
                 if input == "all" {
-                    try stopAll(ctx: ctx)
-                    return
+                    return try stopAll(ctx: ctx)
                 }
 
                 if let num = Int(input), num >= 1, num <= running.count {
                     let (session, proj) = running[num - 1]
                     let stopped = try ctx.sessionService.update(id: session.id, startTime: session.startTime, endTime: Date())
-                    output("Stopped \(proj.name) (\(DurationFormat.formatted(stopped.duration())))")
-                    return
+                    return .sessionStopped(entries: [StopEntry(name: proj.name, duration: stopped.duration())])
                 }
 
                 print("Invalid choice. Try again.")
             }
         }
 
-        private func stopProject(name: String, ctx: AppContext) throws {
+        private func stopProject(name: String, ctx: AppContext) throws -> CommandResult {
             guard let proj = try ctx.projectService.get(name: name) else {
                 throw RockyError.projectNotFound(name)
             }
@@ -120,29 +118,23 @@ struct Sessions: ParsableCommand {
                 throw RockyError.sessionNoTimerRunning(proj.name)
             }
             let stopped = try ctx.sessionService.update(id: session.id, startTime: session.startTime, endTime: Date())
-            output("Stopped \(proj.name) (\(DurationFormat.formatted(stopped.duration())))")
+            return .sessionStopped(entries: [StopEntry(name: proj.name, duration: stopped.duration())])
         }
 
-        private func stopAll(ctx: AppContext) throws {
+        private func stopAll(ctx: AppContext) throws -> CommandResult {
             let running = try ctx.sessionService.list(running: true)
             if running.isEmpty {
-                output("No timers currently running.")
-                return
+                return .sessionStopped(entries: [])
             }
 
             let now = Date()
-            var entries: [(name: String, duration: String)] = []
+            var entries: [StopEntry] = []
             for (session, proj) in running {
                 let stopped = try ctx.sessionService.update(id: session.id, startTime: session.startTime, endTime: now)
-                entries.append((proj.name, DurationFormat.formatted(stopped.duration())))
+                entries.append(StopEntry(name: proj.name, duration: stopped.duration()))
             }
 
-            let maxName = entries.map(\.name.count).max() ?? 0
-            let lines = entries.map { entry in
-                let padded = entry.name.padding(toLength: maxName, withPad: " ", startingAt: 0)
-                return "Stopped \(padded)  (\(entry.duration))"
-            }
-            output(lines.joined(separator: "\n"))
+            return .sessionStopped(entries: entries)
         }
     }
 
@@ -175,12 +167,16 @@ struct Sessions: ParsableCommand {
         @Option(name: .long, help: "Filter to a single project.")
         var project: String?
 
+        @OptionGroup var outputOptions: OutputOptions
+
         func run() throws {
             let ctx = try AppContext.build()
-            try execute(ctx: ctx)
+            let result = try execute(ctx: ctx)
+            output(result, options: outputOptions)
         }
 
-        func execute(ctx: AppContext) throws {
+        @discardableResult
+        func execute(ctx: AppContext) throws -> CommandResult {
             let calendar = Calendar.current
 
             // Resolve project filter
@@ -195,8 +191,7 @@ struct Sessions: ParsableCommand {
             // No time range flags — show current status
             if !today && !week && !month && !year && from == nil {
                 let statuses = try ctx.reportService.allProjectsWithStatus()
-                output(Table.renderStatus(statuses))
-                return
+                return .sessionStatus(statuses: statuses)
             }
 
             let now = Date()
@@ -206,12 +201,11 @@ struct Sessions: ParsableCommand {
                 let (start, _) = dayRange(for: now, calendar: calendar)
                 if verbose {
                     let sessions = try ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
-                    output(Table.renderVerbose(sessions, period: Date().formatted(DateTimeFormat.fullDate), projectFilter: project))
+                    return .sessionVerbose(sessions: sessions, period: Date().formatted(DateTimeFormat.fullDate), projectFilter: project)
                 } else {
                     let totals = try ctx.reportService.totals(from: start, to: endOfToday, projectId: projectId)
-                    output(Table.renderTodayTotals(totals, period: Date().formatted(DateTimeFormat.fullDate)))
+                    return .sessionTodayTotals(totals: totals, period: Date().formatted(DateTimeFormat.fullDate))
                 }
-                return
             }
 
             if week {
@@ -219,12 +213,11 @@ struct Sessions: ParsableCommand {
                 let period = DateTimeFormat.periodRange(from: start, to: endOfToday)
                 if verbose {
                     let sessions = try ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
-                    output(Table.renderVerbose(sessions, period: period, projectFilter: project))
+                    return .sessionVerbose(sessions: sessions, period: period, projectFilter: project)
                 } else {
                     let report = try ctx.reportService.groupedByDay(from: start, to: endOfToday, projectId: projectId)
-                    output(Table.renderGrouped(report, period: period, projectFilter: project))
+                    return .sessionGrouped(report: report, period: period, projectFilter: project, hoursOnly: false)
                 }
-                return
             }
 
             if month {
@@ -232,12 +225,11 @@ struct Sessions: ParsableCommand {
                 let period = now.formatted(DateTimeFormat.monthYear)
                 if verbose {
                     let sessions = try ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
-                    output(Table.renderVerbose(sessions, period: period, projectFilter: project))
+                    return .sessionVerbose(sessions: sessions, period: period, projectFilter: project)
                 } else {
                     let report = try ctx.reportService.groupedByWeekOfMonth(from: start, to: endOfToday, projectId: projectId)
-                    output(Table.renderGrouped(report, period: period, projectFilter: project))
+                    return .sessionGrouped(report: report, period: period, projectFilter: project, hoursOnly: false)
                 }
-                return
             }
 
             if year {
@@ -245,45 +237,47 @@ struct Sessions: ParsableCommand {
                 let period = now.formatted(DateTimeFormat.year)
                 if verbose {
                     let sessions = try ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
-                    output(Table.renderVerbose(sessions, period: period, projectFilter: project))
+                    return .sessionVerbose(sessions: sessions, period: period, projectFilter: project)
                 } else {
                     let report = try ctx.reportService.groupedByMonth(from: start, to: endOfToday, projectId: projectId)
-                    output(Table.renderGrouped(report, period: period, projectFilter: project, hoursOnly: true))
+                    return .sessionGrouped(report: report, period: period, projectFilter: project, hoursOnly: true)
                 }
-                return
             }
 
-            if let fromStr = from {
-                guard let fromDate = parseDate(fromStr) else {
-                    throw RockyError.sessionInvalidDateFormat(fromStr)
-                }
-                let toDate: Date
-                if let toStr = to {
-                    guard let parsed = parseDate(toStr) else {
-                        throw RockyError.sessionInvalidDateFormat(toStr)
-                    }
-                    toDate = calendar.date(byAdding: .day, value: 1, to: parsed)!
-                } else {
-                    let (_, endOfToday) = dayRange(for: now, calendar: calendar)
-                    toDate = endOfToday
-                }
+            // --from custom range
+            guard let fromStr = from else {
+                return .sessionStatus(statuses: [])
+            }
 
-                let days = calendar.dateComponents([.day], from: fromDate, to: toDate).day ?? 0
-                let period = DateTimeFormat.periodRange(from: fromDate, to: toDate)
-
-                if verbose {
-                    let sessions = try ctx.reportService.verboseSessions(from: fromDate, to: toDate, projectId: projectId)
-                    output(Table.renderVerbose(sessions, period: period, projectFilter: project))
-                } else if days <= 7 {
-                    let report = try ctx.reportService.groupedByDay(from: fromDate, to: toDate, projectId: projectId)
-                    output(Table.renderGrouped(report, period: period, projectFilter: project))
-                } else if days <= 60 {
-                    let report = try ctx.reportService.groupedByWeek(from: fromDate, to: toDate, projectId: projectId)
-                    output(Table.renderGrouped(report, period: period, projectFilter: project))
-                } else {
-                    let report = try ctx.reportService.groupedByMonth(from: fromDate, to: toDate, projectId: projectId)
-                    output(Table.renderGrouped(report, period: period, projectFilter: project, hoursOnly: true))
+            guard let fromDate = parseDate(fromStr) else {
+                throw RockyError.sessionInvalidDateFormat(fromStr)
+            }
+            let toDate: Date
+            if let toStr = to {
+                guard let parsed = parseDate(toStr) else {
+                    throw RockyError.sessionInvalidDateFormat(toStr)
                 }
+                toDate = calendar.date(byAdding: .day, value: 1, to: parsed)!
+            } else {
+                let (_, endOfToday) = dayRange(for: now, calendar: calendar)
+                toDate = endOfToday
+            }
+
+            let days = calendar.dateComponents([.day], from: fromDate, to: toDate).day ?? 0
+            let period = DateTimeFormat.periodRange(from: fromDate, to: toDate)
+
+            if verbose {
+                let sessions = try ctx.reportService.verboseSessions(from: fromDate, to: toDate, projectId: projectId)
+                return .sessionVerbose(sessions: sessions, period: period, projectFilter: project)
+            } else if days <= 7 {
+                let report = try ctx.reportService.groupedByDay(from: fromDate, to: toDate, projectId: projectId)
+                return .sessionGrouped(report: report, period: period, projectFilter: project, hoursOnly: false)
+            } else if days <= 60 {
+                let report = try ctx.reportService.groupedByWeek(from: fromDate, to: toDate, projectId: projectId)
+                return .sessionGrouped(report: report, period: period, projectFilter: project, hoursOnly: false)
+            } else {
+                let report = try ctx.reportService.groupedByMonth(from: fromDate, to: toDate, projectId: projectId)
+                return .sessionGrouped(report: report, period: period, projectFilter: project, hoursOnly: true)
             }
         }
 
@@ -341,16 +335,20 @@ struct Sessions: ParsableCommand {
         @Option(name: .long, help: "Duration in seconds.")
         var duration: Double?
 
+        @OptionGroup var outputOptions: OutputOptions
+
         func run() throws {
             let ctx = try AppContext.build()
-            try execute(ctx: ctx)
+            let result = try execute(ctx: ctx)
+            output(result, options: outputOptions)
         }
 
-        func execute(ctx: AppContext) throws {
+        @discardableResult
+        func execute(ctx: AppContext) throws -> CommandResult {
             if let sessionId = session {
-                try nonInteractive(sessionId: sessionId, ctx: ctx)
+                return try nonInteractive(sessionId: sessionId, ctx: ctx)
             } else if let projectName = project {
-                try interactive(projectName: projectName, ctx: ctx)
+                return try interactive(projectName: projectName, ctx: ctx)
             } else {
                 throw RockyError.sessionMissingArgument("Provide a project name for interactive mode or --session for non-interactive mode.")
             }
@@ -358,7 +356,7 @@ struct Sessions: ParsableCommand {
 
         // MARK: - Non-interactive
 
-        private func nonInteractive(sessionId: Int, ctx: AppContext) throws {
+        private func nonInteractive(sessionId: Int, ctx: AppContext) throws -> CommandResult {
             let newStart = try start.map { try DateTimeFormat.parse($0) }
             let newStop = try stop.map { try DateTimeFormat.parse($0) }
 
@@ -370,12 +368,12 @@ struct Sessions: ParsableCommand {
                 ctx: ctx
             )
 
-            printSessionSummary(updated)
+            return .sessionEdited(session: updated)
         }
 
         // MARK: - Interactive
 
-        private func interactive(projectName: String, ctx: AppContext) throws {
+        private func interactive(projectName: String, ctx: AppContext) throws -> CommandResult {
             guard let proj = try ctx.projectService.get(name: projectName) else {
                 throw RockyError.projectNotFound(projectName)
             }
@@ -386,8 +384,7 @@ struct Sessions: ParsableCommand {
             let sessions = try ctx.sessionService.list(from: from, to: to, projectId: proj.id)
 
             if sessions.isEmpty {
-                output("No sessions found for \(proj.name).")
-                return
+                return .message("No sessions found for \(proj.name).")
             }
 
             let verboseRows = sessions.map { session, project in
@@ -422,15 +419,15 @@ struct Sessions: ParsableCommand {
             case .start:
                 let newStart = try promptForDatetime("New value (YYYY-MM-DD HH:MM): ")
                 let updated = try resolveAndUpdate(sessionId: sessionId, newStart: newStart, newStop: nil, newDuration: nil, ctx: ctx)
-                printSessionSummary(updated)
+                return .sessionEdited(session: updated)
             case .stop:
                 let newStop = try promptForDatetime("New value (YYYY-MM-DD HH:MM): ")
                 let updated = try resolveAndUpdate(sessionId: sessionId, newStart: nil, newStop: newStop, newDuration: nil, ctx: ctx)
-                printSessionSummary(updated)
+                return .sessionEdited(session: updated)
             case .duration:
                 let newDuration = try promptForDuration()
                 let updated = try resolveAndUpdate(sessionId: sessionId, newStart: nil, newStop: nil, newDuration: newDuration, ctx: ctx)
-                printSessionSummary(updated)
+                return .sessionEdited(session: updated)
             }
         }
 
@@ -583,13 +580,5 @@ struct Sessions: ParsableCommand {
             }
         }
 
-        // MARK: - Output
-
-        private func printSessionSummary(_ session: Session) {
-            let startStr = session.startTime.formatted(DateTimeFormat.time)
-            let stopStr = session.isRunning ? "running" : session.endTime!.formatted(DateTimeFormat.time)
-            let durStr = DurationFormat.formatted(session.duration())
-            output("Updated: \(session.startTime.formatted(DateTimeFormat.dateWithDay))  \(startStr) — \(stopStr)  (\(durStr))")
-        }
     }
 }

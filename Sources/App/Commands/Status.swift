@@ -30,6 +30,8 @@ struct Status: ParsableCommand {
     @Option(name: .long, help: "Filter to a single project.")
     var project: String?
 
+    @OptionGroup var outputOptions: OutputOptions
+
     func run() throws {
         var cmd = Sessions.Status()
         cmd.today = today
@@ -40,6 +42,7 @@ struct Status: ParsableCommand {
         cmd.to = to
         cmd.verbose = verbose
         cmd.project = project
+        cmd.outputOptions = outputOptions
         try cmd.run()
     }
 }

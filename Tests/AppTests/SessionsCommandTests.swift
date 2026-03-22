@@ -118,6 +118,36 @@ struct SessionsCommandTests {
         #expect(cmd is Sessions)
     }
 
+    // MARK: - --output flag
+
+    @Test("rocky sessions start parses --output json")
+    func sessionsStartOutputJson() throws {
+        let cmd = try Rocky.parseAsRoot(["sessions", "start", "acme-corp", "--output", "json"])
+        let start = cmd as! Sessions.Start
+        #expect(start.outputOptions.output == .json)
+    }
+
+    @Test("rocky sessions stop parses --output json")
+    func sessionsStopOutputJson() throws {
+        let cmd = try Rocky.parseAsRoot(["sessions", "stop", "--output", "json"])
+        let stop = cmd as! Sessions.Stop
+        #expect(stop.outputOptions.output == .json)
+    }
+
+    @Test("rocky sessions status parses --output json")
+    func sessionsStatusOutputJson() throws {
+        let cmd = try Rocky.parseAsRoot(["sessions", "status", "--output", "json"])
+        let status = cmd as! Sessions.Status
+        #expect(status.outputOptions.output == .json)
+    }
+
+    @Test("rocky sessions edit parses --output json")
+    func sessionsEditOutputJson() throws {
+        let cmd = try Rocky.parseAsRoot(["sessions", "edit", "--session", "1", "--output", "json"])
+        let edit = cmd as! Sessions.Edit
+        #expect(edit.outputOptions.output == .json)
+    }
+
     // MARK: - Top-level shortcuts
 
     @Test("rocky start shortcut parses project argument")
@@ -138,6 +168,27 @@ struct SessionsCommandTests {
     func statusShortcut() throws {
         let cmd = try Rocky.parseAsRoot(["status"])
         #expect(cmd is Status)
+    }
+
+    @Test("rocky start shortcut parses --output json")
+    func startShortcutOutputJson() throws {
+        let cmd = try Rocky.parseAsRoot(["start", "acme-corp", "--output", "json"])
+        let start = cmd as! Start
+        #expect(start.outputOptions.output == .json)
+    }
+
+    @Test("rocky stop shortcut parses --output json")
+    func stopShortcutOutputJson() throws {
+        let cmd = try Rocky.parseAsRoot(["stop", "--output", "json"])
+        let stop = cmd as! Stop
+        #expect(stop.outputOptions.output == .json)
+    }
+
+    @Test("rocky status shortcut parses --output json")
+    func statusShortcutOutputJson() throws {
+        let cmd = try Rocky.parseAsRoot(["status", "--output", "json"])
+        let status = cmd as! Status
+        #expect(status.outputOptions.output == .json)
     }
 
     // MARK: - rocky edit removed as top-level
