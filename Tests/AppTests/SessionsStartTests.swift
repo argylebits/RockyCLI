@@ -31,12 +31,14 @@ struct SessionsStartTests {
         #expect(projects.count == 1)
         #expect(projects[0].name == "acme-corp")
 
-        guard case .sessionStarted(let project, let running) = result else {
+        guard case .sessionStarted(let session, let project, let otherRunning) = result else {
             Issue.record("Expected .sessionStarted, got \(result)")
             return
         }
-        #expect(project == "acme-corp")
-        #expect(running.isEmpty)
+        #expect(project.name == "acme-corp")
+        #expect(session.isRunning)
+        #expect(session.projectId == project.id)
+        #expect(otherRunning.isEmpty)
     }
 
     @Test("start reuses existing project")
@@ -52,11 +54,11 @@ struct SessionsStartTests {
         let projects = try projectRepo.list()
         #expect(projects.count == 1)
 
-        guard case .sessionStarted(let project, _) = result else {
+        guard case .sessionStarted(_, let project, _) = result else {
             Issue.record("Expected .sessionStarted, got \(result)")
             return
         }
-        #expect(project == "acme-corp")
+        #expect(project.name == "acme-corp")
     }
 
     @Test("start creates a running session")
@@ -116,11 +118,12 @@ struct SessionsStartTests {
         let running = try sessionRepo.list(running: true)
         #expect(running.count == 2)
 
-        guard case .sessionStarted(let project, let otherRunning) = result else {
+        guard case .sessionStarted(let session, let project, let otherRunning) = result else {
             Issue.record("Expected .sessionStarted, got \(result)")
             return
         }
-        #expect(project == "project-b")
+        #expect(session.isRunning)
+        #expect(project.name == "project-b")
         #expect(otherRunning.contains("project-a"))
     }
 }

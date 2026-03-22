@@ -1,24 +1,19 @@
 import Foundation
 import RockyCore
 
-struct StopEntry {
-    let name: String
-    let duration: TimeInterval
-}
-
 enum CommandResult {
     // Session
-    case sessionStarted(project: String, running: [String])
-    case sessionStopped(entries: [StopEntry])
+    case sessionStarted(session: Session, project: Project, otherRunning: [String])
+    case sessionStopped(sessions: [Session], projects: [Project])
     case sessionStatus(statuses: [ProjectStatus])
-    case sessionTodayTotals(totals: ProjectTotals, period: String)
-    case sessionGrouped(report: GroupedReport, period: String, projectFilter: String?, hoursOnly: Bool)
+    case sessionTodayTotals(totals: ProjectTotals, period: String, sessions: [Session], projects: [Project])
+    case sessionGrouped(report: GroupedReport, period: String, projectFilter: String?, hoursOnly: Bool, sessions: [Session], projects: [Project])
     case sessionVerbose(sessions: [VerboseSessionRow], period: String, projectFilter: String?)
     case sessionEdited(session: Session)
 
     // Project
     case projectList(projects: [Project])
-    case projectRenamed(oldName: String, newName: String)
+    case projectRenamed(oldName: String, project: Project)
 
     // Dashboard
     case dashboard(data: DashboardData)

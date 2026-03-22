@@ -49,7 +49,7 @@ struct Projects: ParsableCommand {
         @discardableResult
         func execute(ctx: AppContext) throws -> CommandResult {
             let renamed = try ctx.projectService.rename(oldName: oldName, newName: newName)
-            return .projectRenamed(oldName: oldName, newName: renamed.name)
+            return .projectRenamed(oldName: oldName, project: renamed)
         }
     }
 }

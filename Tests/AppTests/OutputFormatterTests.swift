@@ -10,14 +10,18 @@ struct OutputFormatterTests {
 
     @Test("started formats project name")
     func startedBasic() {
-        let result = CommandResult.sessionStarted(project: "Acme Corp", running: [])
+        let project = Project(id: 1, parentId: nil, name: "Acme Corp", slug: "acme-corp", createdAt: Date())
+        let session = Session(id: 1, projectId: 1, startTime: Date(), endTime: nil)
+        let result = CommandResult.sessionStarted(session: session, project: project, otherRunning: [])
         let text = OutputFormatter.formatText(result)
         #expect(text == "Started Acme Corp")
     }
 
     @Test("started includes other running timers")
     func startedWithRunning() {
-        let result = CommandResult.sessionStarted(project: "Acme Corp", running: ["Project B", "Project C"])
+        let project = Project(id: 1, parentId: nil, name: "Acme Corp", slug: "acme-corp", createdAt: Date())
+        let session = Session(id: 1, projectId: 1, startTime: Date(), endTime: nil)
+        let result = CommandResult.sessionStarted(session: session, project: project, otherRunning: ["Project B", "Project C"])
         let text = OutputFormatter.formatText(result)
         #expect(text == "Started Acme Corp\nCurrently running: Project B, Project C")
     }
@@ -26,19 +30,20 @@ struct OutputFormatterTests {
 
     @Test("stopped formats single entry")
     func stoppedSingle() {
-        let result = CommandResult.sessionStopped(entries: [
-            StopEntry(name: "Acme Corp", duration: 9000),
-        ])
+        let project = Project(id: 1, parentId: nil, name: "Acme Corp", slug: "acme-corp", createdAt: Date())
+        let session = Session(id: 1, projectId: 1, startTime: Date().addingTimeInterval(-9000), endTime: Date())
+        let result = CommandResult.sessionStopped(sessions: [session], projects: [project])
         let text = OutputFormatter.formatText(result)
         #expect(text == "Stopped Acme Corp (2h 30m)")
     }
 
     @Test("stopped formats multiple entries with aligned names")
     func stoppedMultiple() {
-        let result = CommandResult.sessionStopped(entries: [
-            StopEntry(name: "Acme Corp", duration: 9000),
-            StopEntry(name: "Side", duration: 3600),
-        ])
+        let proj1 = Project(id: 1, parentId: nil, name: "Acme Corp", slug: "acme-corp", createdAt: Date())
+        let proj2 = Project(id: 2, parentId: nil, name: "Side", slug: "side", createdAt: Date())
+        let s1 = Session(id: 1, projectId: 1, startTime: Date().addingTimeInterval(-9000), endTime: Date())
+        let s2 = Session(id: 2, projectId: 2, startTime: Date().addingTimeInterval(-3600), endTime: Date())
+        let result = CommandResult.sessionStopped(sessions: [s1, s2], projects: [proj1, proj2])
         let text = OutputFormatter.formatText(result)
         let lines = text.split(separator: "\n")
         #expect(lines.count == 2)
@@ -48,7 +53,7 @@ struct OutputFormatterTests {
 
     @Test("stopped with no running timers")
     func stoppedNoTimers() {
-        let result = CommandResult.sessionStopped(entries: [])
+        let result = CommandResult.sessionStopped(sessions: [], projects: [])
         let text = OutputFormatter.formatText(result)
         #expect(text == "No timers currently running.")
     }
@@ -70,7 +75,7 @@ struct OutputFormatterTests {
     func todayTotals() {
         let totals = ProjectTotals(entries: [])
         let period = "Saturday, March 22, 2026"
-        let result = CommandResult.sessionTodayTotals(totals: totals, period: period)
+        let result = CommandResult.sessionTodayTotals(totals: totals, period: period, sessions: [], projects: [])
         let text = OutputFormatter.formatText(result)
         #expect(text == Table.renderTodayTotals(totals, period: period))
     }
@@ -80,7 +85,7 @@ struct OutputFormatterTests {
     @Test("grouped delegates to Table.renderGrouped")
     func grouped() {
         let report = GroupedReport(columns: ["Mon", "Tue"], rows: [])
-        let result = CommandResult.sessionGrouped(report: report, period: "Mar 17 – Mar 22", projectFilter: nil, hoursOnly: false)
+        let result = CommandResult.sessionGrouped(report: report, period: "Mar 17 – Mar 22", projectFilter: nil, hoursOnly: false, sessions: [], projects: [])
         let text = OutputFormatter.formatText(result)
         #expect(text == Table.renderGrouped(report, period: "Mar 17 – Mar 22"))
     }
@@ -142,7 +147,8 @@ struct OutputFormatterTests {
 
     @Test("projectRenamed formats old and new names")
     func projectRenamed() {
-        let result = CommandResult.projectRenamed(oldName: "acme-corp", newName: "Acme Inc")
+        let project = Project(id: 1, parentId: nil, name: "Acme Inc", slug: "acme-inc", createdAt: Date())
+        let result = CommandResult.projectRenamed(oldName: "acme-corp", project: project)
         let text = OutputFormatter.formatText(result)
         #expect(text == "Renamed acme-corp → Acme Inc")
     }

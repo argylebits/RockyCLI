@@ -7,8 +7,9 @@ public struct SessionService: Sendable {
         self.repository = repository
     }
 
-    public func create(projectId: Int) throws {
-        _ = try repository.create(projectId: projectId, startTime: Date(), endTime: nil)
+    @discardableResult
+    public func create(projectId: Int) throws -> Session {
+        try repository.create(projectId: projectId, startTime: Date(), endTime: nil)
     }
 
     public func get(id: Int) throws -> Session? {
