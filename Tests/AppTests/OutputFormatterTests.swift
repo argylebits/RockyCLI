@@ -10,14 +10,14 @@ struct OutputFormatterTests {
 
     @Test("started formats project name")
     func startedBasic() {
-        let result = CommandResult.started(project: "Acme Corp", running: [])
+        let result = CommandResult.sessionStarted(project: "Acme Corp", running: [])
         let text = OutputFormatter.formatText(result)
         #expect(text == "Started Acme Corp")
     }
 
     @Test("started includes other running timers")
     func startedWithRunning() {
-        let result = CommandResult.started(project: "Acme Corp", running: ["Project B", "Project C"])
+        let result = CommandResult.sessionStarted(project: "Acme Corp", running: ["Project B", "Project C"])
         let text = OutputFormatter.formatText(result)
         #expect(text == "Started Acme Corp\nCurrently running: Project B, Project C")
     }
@@ -26,7 +26,7 @@ struct OutputFormatterTests {
 
     @Test("stopped formats single entry")
     func stoppedSingle() {
-        let result = CommandResult.stopped(entries: [
+        let result = CommandResult.sessionStopped(entries: [
             StopEntry(name: "Acme Corp", duration: 9000),
         ])
         let text = OutputFormatter.formatText(result)
@@ -35,7 +35,7 @@ struct OutputFormatterTests {
 
     @Test("stopped formats multiple entries with aligned names")
     func stoppedMultiple() {
-        let result = CommandResult.stopped(entries: [
+        let result = CommandResult.sessionStopped(entries: [
             StopEntry(name: "Acme Corp", duration: 9000),
             StopEntry(name: "Side", duration: 3600),
         ])
@@ -48,7 +48,7 @@ struct OutputFormatterTests {
 
     @Test("stopped with no running timers")
     func stoppedNoTimers() {
-        let result = CommandResult.stopped(entries: [])
+        let result = CommandResult.sessionStopped(entries: [])
         let text = OutputFormatter.formatText(result)
         #expect(text == "No timers currently running.")
     }
@@ -59,7 +59,7 @@ struct OutputFormatterTests {
     func status() {
         let project = Project(id: 1, parentId: nil, name: "Acme Corp", slug: "acme-corp", createdAt: Date())
         let statuses = [ProjectStatus(project: project, runningSession: nil)]
-        let result = CommandResult.status(statuses: statuses)
+        let result = CommandResult.sessionStatus(statuses: statuses)
         let text = OutputFormatter.formatText(result)
         #expect(text == Table.renderStatus(statuses))
     }
@@ -70,7 +70,7 @@ struct OutputFormatterTests {
     func todayTotals() {
         let totals = ProjectTotals(entries: [])
         let period = "Saturday, March 22, 2026"
-        let result = CommandResult.todayTotals(totals: totals, period: period)
+        let result = CommandResult.sessionTodayTotals(totals: totals, period: period)
         let text = OutputFormatter.formatText(result)
         #expect(text == Table.renderTodayTotals(totals, period: period))
     }
@@ -80,7 +80,7 @@ struct OutputFormatterTests {
     @Test("grouped delegates to Table.renderGrouped")
     func grouped() {
         let report = GroupedReport(columns: ["Mon", "Tue"], rows: [])
-        let result = CommandResult.grouped(report: report, period: "Mar 17 – Mar 22", projectFilter: nil, hoursOnly: false)
+        let result = CommandResult.sessionGrouped(report: report, period: "Mar 17 – Mar 22", projectFilter: nil, hoursOnly: false)
         let text = OutputFormatter.formatText(result)
         #expect(text == Table.renderGrouped(report, period: "Mar 17 – Mar 22"))
     }
@@ -90,7 +90,7 @@ struct OutputFormatterTests {
     @Test("verbose delegates to Table.renderVerbose")
     func verbose() {
         let sessions: [VerboseSessionRow] = []
-        let result = CommandResult.verbose(sessions: sessions, period: "Mar 22", projectFilter: nil)
+        let result = CommandResult.sessionVerbose(sessions: sessions, period: "Mar 22", projectFilter: nil)
         let text = OutputFormatter.formatText(result)
         #expect(text == Table.renderVerbose(sessions, period: "Mar 22"))
     }
@@ -102,7 +102,7 @@ struct OutputFormatterTests {
         let start = Date().addingTimeInterval(-7200)
         let stop = Date().addingTimeInterval(-3600)
         let session = Session(id: 42, projectId: 1, startTime: start, endTime: stop)
-        let result = CommandResult.edited(session: session)
+        let result = CommandResult.sessionEdited(session: session)
         let text = OutputFormatter.formatText(result)
         let startStr = start.formatted(DateTimeFormat.time)
         let stopStr = stop.formatted(DateTimeFormat.time)
@@ -114,7 +114,7 @@ struct OutputFormatterTests {
     func editedRunning() {
         let start = Date().addingTimeInterval(-3600)
         let session = Session(id: 42, projectId: 1, startTime: start, endTime: nil)
-        let result = CommandResult.edited(session: session)
+        let result = CommandResult.sessionEdited(session: session)
         let text = OutputFormatter.formatText(result)
         #expect(text.contains("running"))
     }
