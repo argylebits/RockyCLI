@@ -1,0 +1,203 @@
+import Foundation
+import Testing
+@testable import App
+@testable import RockyCore
+
+@Suite("OutputFormatter")
+struct OutputFormatterTests {
+
+    // MARK: - Started
+
+    @Test("started formats project name")
+    func startedBasic() {
+        let result = CommandResult.started(project: "Acme Corp", running: [])
+        let text = OutputFormatter.formatText(result)
+        #expect(text == "Started Acme Corp")
+    }
+
+    @Test("started includes other running timers")
+    func startedWithRunning() {
+        let result = CommandResult.started(project: "Acme Corp", running: ["Project B", "Project C"])
+        let text = OutputFormatter.formatText(result)
+        #expect(text == "Started Acme Corp\nCurrently running: Project B, Project C")
+    }
+
+    // MARK: - Stopped
+
+    @Test("stopped formats single entry")
+    func stoppedSingle() {
+        let result = CommandResult.stopped(entries: [
+            StopEntry(name: "Acme Corp", duration: 9000),
+        ])
+        let text = OutputFormatter.formatText(result)
+        #expect(text == "Stopped Acme Corp (2h 30m)")
+    }
+
+    @Test("stopped formats multiple entries with aligned names")
+    func stoppedMultiple() {
+        let result = CommandResult.stopped(entries: [
+            StopEntry(name: "Acme Corp", duration: 9000),
+            StopEntry(name: "Side", duration: 3600),
+        ])
+        let text = OutputFormatter.formatText(result)
+        let lines = text.split(separator: "\n")
+        #expect(lines.count == 2)
+        #expect(lines[0].hasPrefix("Stopped Acme Corp"))
+        #expect(lines[1].hasPrefix("Stopped Side"))
+    }
+
+    @Test("stopped with no running timers")
+    func stoppedNoTimers() {
+        let result = CommandResult.stopped(entries: [])
+        let text = OutputFormatter.formatText(result)
+        #expect(text == "No timers currently running.")
+    }
+
+    // MARK: - Status
+
+    @Test("status delegates to Table.renderStatus")
+    func status() {
+        let project = Project(id: 1, parentId: nil, name: "Acme Corp", slug: "acme-corp", createdAt: Date())
+        let statuses = [ProjectStatus(project: project, runningSession: nil)]
+        let result = CommandResult.status(statuses: statuses)
+        let text = OutputFormatter.formatText(result)
+        #expect(text == Table.renderStatus(statuses))
+    }
+
+    // MARK: - Today totals
+
+    @Test("todayTotals delegates to Table.renderTodayTotals")
+    func todayTotals() {
+        let totals = ProjectTotals(entries: [])
+        let period = "Saturday, March 22, 2026"
+        let result = CommandResult.todayTotals(totals: totals, period: period)
+        let text = OutputFormatter.formatText(result)
+        #expect(text == Table.renderTodayTotals(totals, period: period))
+    }
+
+    // MARK: - Grouped
+
+    @Test("grouped delegates to Table.renderGrouped")
+    func grouped() {
+        let report = GroupedReport(columns: ["Mon", "Tue"], rows: [])
+        let result = CommandResult.grouped(report: report, period: "Mar 17 – Mar 22", projectFilter: nil, hoursOnly: false)
+        let text = OutputFormatter.formatText(result)
+        #expect(text == Table.renderGrouped(report, period: "Mar 17 – Mar 22"))
+    }
+
+    // MARK: - Verbose
+
+    @Test("verbose delegates to Table.renderVerbose")
+    func verbose() {
+        let sessions: [VerboseSessionRow] = []
+        let result = CommandResult.verbose(sessions: sessions, period: "Mar 22", projectFilter: nil)
+        let text = OutputFormatter.formatText(result)
+        #expect(text == Table.renderVerbose(sessions, period: "Mar 22"))
+    }
+
+    // MARK: - Edited
+
+    @Test("edited formats session summary")
+    func edited() {
+        let start = Date().addingTimeInterval(-7200)
+        let stop = Date().addingTimeInterval(-3600)
+        let session = Session(id: 42, projectId: 1, startTime: start, endTime: stop)
+        let result = CommandResult.edited(session: session)
+        let text = OutputFormatter.formatText(result)
+        let startStr = start.formatted(DateTimeFormat.time)
+        let stopStr = stop.formatted(DateTimeFormat.time)
+        let durStr = DurationFormat.formatted(session.duration())
+        #expect(text == "Updated: \(start.formatted(DateTimeFormat.dateWithDay))  \(startStr) — \(stopStr)  (\(durStr))")
+    }
+
+    @Test("edited formats running session")
+    func editedRunning() {
+        let start = Date().addingTimeInterval(-3600)
+        let session = Session(id: 42, projectId: 1, startTime: start, endTime: nil)
+        let result = CommandResult.edited(session: session)
+        let text = OutputFormatter.formatText(result)
+        #expect(text.contains("running"))
+    }
+
+    // MARK: - Project list
+
+    @Test("projectList delegates to Table.renderProjects")
+    func projectList() {
+        let projects = [
+            Project(id: 1, parentId: nil, name: "Acme Corp", slug: "acme-corp", createdAt: Date()),
+        ]
+        let result = CommandResult.projectList(projects: projects)
+        let text = OutputFormatter.formatText(result)
+        #expect(text == Table.renderProjects(projects))
+    }
+
+    @Test("projectList with empty list")
+    func projectListEmpty() {
+        let result = CommandResult.projectList(projects: [])
+        let text = OutputFormatter.formatText(result)
+        #expect(text == "No projects found.")
+    }
+
+    // MARK: - Project renamed
+
+    @Test("projectRenamed formats old and new names")
+    func projectRenamed() {
+        let result = CommandResult.projectRenamed(oldName: "acme-corp", newName: "Acme Inc")
+        let text = OutputFormatter.formatText(result)
+        #expect(text == "Renamed acme-corp → Acme Inc")
+    }
+
+    // MARK: - Dashboard
+
+    @Test("dashboard delegates to DashboardRenderer")
+    func dashboard() {
+        let data = DashboardData(
+            runningTimers: [],
+            timeSummary: TimeSummary(thisWeek: 0, lastWeek: 0, thisMonth: 0, lastMonth: 0, thisYear: 0),
+            heatmap: HeatmapData(weeks: []),
+            sparkline: SparklineData(values: []),
+            projectDistribution: [],
+            peakHours: [:],
+            stats: DashboardStats(
+                currentStreak: 0, longestStreak: 0, averageSessionDuration: 0,
+                longestSession: nil, mostActiveWeekday: nil, dailyAvgWeek: 0,
+                sessionsThisWeek: 0, totalHours: 0, topProject: nil, bestDayThisWeek: nil
+            )
+        )
+        let result = CommandResult.dashboard(data: data)
+        let text = OutputFormatter.formatText(result)
+        #expect(text == DashboardRenderer.render(data))
+    }
+
+    // MARK: - Config
+
+    @Test("configValue formats key-value pair")
+    func configValue() {
+        let result = CommandResult.configValue(key: "auto-stop", value: "true")
+        let text = OutputFormatter.formatText(result)
+        #expect(text == "auto-stop = true")
+    }
+
+    @Test("configList formats entries")
+    func configList() {
+        let result = CommandResult.configList(entries: [("auto-stop", "true"), ("theme", "dark")])
+        let text = OutputFormatter.formatText(result)
+        #expect(text == "  auto-stop = true\n  theme = dark")
+    }
+
+    @Test("configList with empty list shows defaults")
+    func configListEmpty() {
+        let result = CommandResult.configList(entries: [])
+        let text = OutputFormatter.formatText(result)
+        #expect(text == "No config values set. Defaults:\n  auto-stop = true")
+    }
+
+    // MARK: - Message
+
+    @Test("message passes through")
+    func message() {
+        let result = CommandResult.message("No sessions found for Acme Corp.")
+        let text = OutputFormatter.formatText(result)
+        #expect(text == "No sessions found for Acme Corp.")
+    }
+}
