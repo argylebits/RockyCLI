@@ -1,10 +1,9 @@
 import ArgumentParser
-import Foundation
-import RockyCore
 
 struct Status: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Show time tracking summary."
+        abstract: "Show time tracking summary.",
+        shouldDisplay: false
     )
 
     @Flag(name: .long, help: "Show totals for today.")
@@ -32,144 +31,15 @@ struct Status: ParsableCommand {
     var project: String?
 
     func run() throws {
-        let ctx = try AppContext.build()
-
-        let calendar = Calendar.current
-
-        // Resolve project filter
-        var projectId: Int? = nil
-        if let projectName = project {
-            guard let proj = try ctx.projectService.get(name: projectName) else {
-                throw ValidationError("No project found with name \"\(projectName)\".")
-            }
-            projectId = proj.id
-        }
-
-        // No time range flags — show current status
-        if !today && !week && !month && !year && from == nil {
-            let statuses = try ctx.reportService.allProjectsWithStatus()
-            output(Table.renderStatus(statuses))
-            return
-        }
-
-        let now = Date()
-        let endOfToday = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))!
-
-        if today {
-            let (start, _) = dayRange(for: now, calendar: calendar)
-            if verbose {
-                let sessions = try ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
-                output(Table.renderVerbose(sessions, period: Date().formatted(DateTimeFormat.fullDate), projectFilter: project))
-            } else {
-                let totals = try ctx.reportService.totals(from: start, to: endOfToday, projectId: projectId)
-                output(Table.renderTodayTotals(totals, period: Date().formatted(DateTimeFormat.fullDate)))
-            }
-            return
-        }
-
-        if week {
-            let (start, _) = weekRange(for: now, calendar: calendar)
-            let period = DateTimeFormat.periodRange(from: start, to: endOfToday)
-            if verbose {
-                let sessions = try ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
-                output(Table.renderVerbose(sessions, period: period, projectFilter: project))
-            } else {
-                let report = try ctx.reportService.groupedByDay(from: start, to: endOfToday, projectId: projectId)
-                output(Table.renderGrouped(report, period: period, projectFilter: project))
-            }
-            return
-        }
-
-        if month {
-            let (start, _) = monthRange(for: now, calendar: calendar)
-            let period = now.formatted(DateTimeFormat.monthYear)
-            if verbose {
-                let sessions = try ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
-                output(Table.renderVerbose(sessions, period: period, projectFilter: project))
-            } else {
-                let report = try ctx.reportService.groupedByWeekOfMonth(from: start, to: endOfToday, projectId: projectId)
-                output(Table.renderGrouped(report, period: period, projectFilter: project))
-            }
-            return
-        }
-
-        if year {
-            let (start, _) = yearRange(for: now, calendar: calendar)
-            let period = now.formatted(DateTimeFormat.year)
-            if verbose {
-                let sessions = try ctx.reportService.verboseSessions(from: start, to: endOfToday, projectId: projectId)
-                output(Table.renderVerbose(sessions, period: period, projectFilter: project))
-            } else {
-                let report = try ctx.reportService.groupedByMonth(from: start, to: endOfToday, projectId: projectId)
-                output(Table.renderGrouped(report, period: period, projectFilter: project, hoursOnly: true))
-            }
-            return
-        }
-
-        if let fromStr = from {
-            guard let fromDate = parseDate(fromStr) else {
-                throw ValidationError("Invalid date format: \(fromStr). Use YYYY-MM-DD.")
-            }
-            let toDate: Date
-            if let toStr = to {
-                guard let parsed = parseDate(toStr) else {
-                    throw ValidationError("Invalid date format: \(toStr). Use YYYY-MM-DD.")
-                }
-                toDate = calendar.date(byAdding: .day, value: 1, to: parsed)!
-            } else {
-                let (_, endOfToday) = dayRange(for: now, calendar: calendar)
-                toDate = endOfToday
-            }
-
-            let days = calendar.dateComponents([.day], from: fromDate, to: toDate).day ?? 0
-            let period = DateTimeFormat.periodRange(from: fromDate, to: toDate)
-
-            if verbose {
-                let sessions = try ctx.reportService.verboseSessions(from: fromDate, to: toDate, projectId: projectId)
-                output(Table.renderVerbose(sessions, period: period, projectFilter: project))
-            } else if days <= 7 {
-                let report = try ctx.reportService.groupedByDay(from: fromDate, to: toDate, projectId: projectId)
-                output(Table.renderGrouped(report, period: period, projectFilter: project))
-            } else if days <= 60 {
-                let report = try ctx.reportService.groupedByWeek(from: fromDate, to: toDate, projectId: projectId)
-                output(Table.renderGrouped(report, period: period, projectFilter: project))
-            } else {
-                let report = try ctx.reportService.groupedByMonth(from: fromDate, to: toDate, projectId: projectId)
-                output(Table.renderGrouped(report, period: period, projectFilter: project, hoursOnly: true))
-            }
-        }
-    }
-
-    // MARK: - Date helpers
-
-    private func parseDate(_ string: String) -> Date? {
-        try? DateTimeFormat.parseDate(string)
-    }
-
-    private func dayRange(for date: Date, calendar: Calendar) -> (Date, Date) {
-        let start = calendar.startOfDay(for: date)
-        let end = calendar.date(byAdding: .day, value: 1, to: start)!
-        return (start, end)
-    }
-
-    private func weekRange(for date: Date, calendar: Calendar) -> (Date, Date) {
-        var cal = calendar
-        cal.firstWeekday = 2 // Monday
-        let interval = cal.dateInterval(of: .weekOfYear, for: date)!
-        return (interval.start, interval.end)
-    }
-
-    private func monthRange(for date: Date, calendar: Calendar) -> (Date, Date) {
-        let components = calendar.dateComponents([.year, .month], from: date)
-        let start = calendar.date(from: components)!
-        let end = calendar.date(byAdding: .month, value: 1, to: start)!
-        return (start, end)
-    }
-
-    private func yearRange(for date: Date, calendar: Calendar) -> (Date, Date) {
-        let components = calendar.dateComponents([.year], from: date)
-        let start = calendar.date(from: components)!
-        let end = calendar.date(byAdding: .year, value: 1, to: start)!
-        return (start, end)
+        var cmd = Sessions.Status()
+        cmd.today = today
+        cmd.week = week
+        cmd.month = month
+        cmd.year = year
+        cmd.from = from
+        cmd.to = to
+        cmd.verbose = verbose
+        cmd.project = project
+        try cmd.run()
     }
 }
