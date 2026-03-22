@@ -35,13 +35,13 @@ extension Session: FetchableRecord, TableRecord {
     public init(row: Row) throws {
         let startTimeString: String = row["start_time"]
         guard let startTime = Date.fromISO8601(startTimeString) else {
-            throw RockyCoreError.invalidRow("sessions")
+            throw RockyError.invalidRow("sessions")
         }
 
         let endTime: Date?
         if let endTimeString: String = row["end_time"] {
             guard let parsed = Date.fromISO8601(endTimeString) else {
-                throw RockyCoreError.invalidRow("sessions")
+                throw RockyError.invalidRow("sessions")
             }
             endTime = parsed
         } else {

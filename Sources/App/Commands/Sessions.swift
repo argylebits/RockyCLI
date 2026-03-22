@@ -26,7 +26,7 @@ struct Sessions: ParsableCommand {
                 ?? ctx.projectService.create(name: project)
 
             if ctx.config.autoStop, try !ctx.sessionService.list(running: true, projectId: proj.id).isEmpty {
-                throw ValidationError("Timer already running for \(proj.name)")
+                throw RockyError.timerAlreadyRunning(proj.name)
             }
 
             try ctx.sessionService.create(projectId: proj.id)
@@ -91,7 +91,7 @@ struct Sessions: ParsableCommand {
             while true {
                 print("Stop which? (\(running.indices.map { "\($0 + 1)" }.joined(separator: "/"))/all): ", terminator: "")
                 guard let line = readLine() else {
-                    throw ValidationError("Input cancelled.")
+                    throw RockyError.inputCancelled
                 }
                 let input = line.trimmingCharacters(in: .whitespaces)
 
@@ -113,11 +113,11 @@ struct Sessions: ParsableCommand {
 
         private func stopProject(name: String, ctx: AppContext) throws {
             guard let proj = try ctx.projectService.get(name: name) else {
-                throw ValidationError("No project found with name \"\(name)\".")
+                throw RockyError.projectNotFound(name)
             }
             let running = try ctx.sessionService.list(running: true, projectId: proj.id)
             guard let (session, _) = running.first else {
-                throw ValidationError("No timer running for \(proj.name).")
+                throw RockyError.noTimerRunning(proj.name)
             }
             let stopped = try ctx.sessionService.update(id: session.id, startTime: session.startTime, endTime: Date())
             output("Stopped \(proj.name) (\(DurationFormat.formatted(stopped.duration())))")
@@ -187,7 +187,7 @@ struct Sessions: ParsableCommand {
             var projectId: Int? = nil
             if let projectName = project {
                 guard let proj = try ctx.projectService.get(name: projectName) else {
-                    throw ValidationError("No project found with name \"\(projectName)\".")
+                    throw RockyError.projectNotFound(projectName)
                 }
                 projectId = proj.id
             }
@@ -255,12 +255,12 @@ struct Sessions: ParsableCommand {
 
             if let fromStr = from {
                 guard let fromDate = parseDate(fromStr) else {
-                    throw ValidationError("Invalid date format: \(fromStr). Use YYYY-MM-DD.")
+                    throw RockyError.invalidDateFormat(fromStr)
                 }
                 let toDate: Date
                 if let toStr = to {
                     guard let parsed = parseDate(toStr) else {
-                        throw ValidationError("Invalid date format: \(toStr). Use YYYY-MM-DD.")
+                        throw RockyError.invalidDateFormat(toStr)
                     }
                     toDate = calendar.date(byAdding: .day, value: 1, to: parsed)!
                 } else {
@@ -352,7 +352,7 @@ struct Sessions: ParsableCommand {
             } else if let projectName = project {
                 try interactive(projectName: projectName, ctx: ctx)
             } else {
-                throw ValidationError("Provide a project name for interactive mode or --session for non-interactive mode.")
+                throw RockyError.missingArgument("Provide a project name for interactive mode or --session for non-interactive mode.")
             }
         }
 
@@ -377,7 +377,7 @@ struct Sessions: ParsableCommand {
 
         private func interactive(projectName: String, ctx: AppContext) throws {
             guard let proj = try ctx.projectService.get(name: projectName) else {
-                throw ValidationError("No project found with name \"\(projectName)\".")
+                throw RockyError.projectNotFound(projectName)
             }
 
             let calendar = Calendar.current
@@ -401,7 +401,7 @@ struct Sessions: ParsableCommand {
             let sessionId = try promptForSessionId(sessions: sessions.map(\.0))
 
             guard let existing = try ctx.sessionService.get(id: sessionId) else {
-                throw ValidationError("No session found with ID \(sessionId).")
+                throw RockyError.sessionNotFound(sessionId)
             }
 
             let startStr = existing.startTime.formatted(DateTimeFormat.time)
@@ -445,17 +445,17 @@ struct Sessions: ParsableCommand {
         ) throws -> Session {
             // Validate not overdetermined
             if newStart != nil && newStop != nil && newDuration != nil {
-                throw RockyCoreError.overdetermined
+                throw RockyError.overdetermined
             }
 
             // Fetch existing session
             guard let existing = try ctx.sessionService.get(id: sessionId) else {
-                throw RockyCoreError.sessionNotFound(sessionId)
+                throw RockyError.sessionNotFound(sessionId)
             }
 
             // Validate duration if provided
             if let duration = newDuration, duration <= 0 {
-                throw RockyCoreError.durationNotPositive
+                throw RockyError.durationNotPositive
             }
 
             // Resolve final start and stop based on flag combinations
@@ -486,17 +486,17 @@ struct Sessions: ParsableCommand {
 
             // Validate: cannot edit stop of a running session
             if existing.isRunning && finalStop != nil && (newStop != nil || newDuration != nil) {
-                throw RockyCoreError.cannotEditRunningSessionStop
+                throw RockyError.cannotEditRunningSessionStop
             }
 
             // Validate: start not in future
             if finalStart > Date() {
-                throw RockyCoreError.startTimeInFuture
+                throw RockyError.startTimeInFuture
             }
 
             // Validate: stop must be after start
             if let stop = finalStop, stop <= finalStart {
-                throw RockyCoreError.stopBeforeStart
+                throw RockyError.stopBeforeStart
             }
 
             return try ctx.sessionService.update(id: sessionId, startTime: finalStart, endTime: finalStop)
@@ -509,7 +509,7 @@ struct Sessions: ParsableCommand {
             while true {
                 print("Edit which? ", terminator: "")
                 guard let line = readLine() else {
-                    throw ValidationError("Input cancelled.")
+                    throw RockyError.inputCancelled
                 }
                 let input = line.trimmingCharacters(in: .whitespaces)
                 guard let id = Int(input) else {
@@ -529,7 +529,7 @@ struct Sessions: ParsableCommand {
             while true {
                 print("Edit which field? (1/2/3): ", terminator: "")
                 guard let line = readLine() else {
-                    throw ValidationError("Input cancelled.")
+                    throw RockyError.inputCancelled
                 }
                 let input = line.trimmingCharacters(in: .whitespaces)
 
@@ -557,7 +557,7 @@ struct Sessions: ParsableCommand {
             while true {
                 print(prompt, terminator: "")
                 guard let line = readLine() else {
-                    throw ValidationError("Input cancelled.")
+                    throw RockyError.inputCancelled
                 }
                 let input = line.trimmingCharacters(in: .whitespaces)
                 do {
@@ -572,7 +572,7 @@ struct Sessions: ParsableCommand {
             while true {
                 print("New value (seconds): ", terminator: "")
                 guard let line = readLine() else {
-                    throw ValidationError("Input cancelled.")
+                    throw RockyError.inputCancelled
                 }
                 let input = line.trimmingCharacters(in: .whitespaces)
                 guard let seconds = Double(input), seconds > 0 else {

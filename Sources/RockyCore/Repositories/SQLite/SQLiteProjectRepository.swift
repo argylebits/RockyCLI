@@ -13,7 +13,7 @@ public struct SQLiteProjectRepository: ProjectRepository, Sendable {
             if let _ = try Project.fetchOne(db,
                 sql: "SELECT * FROM projects WHERE slug = ?",
                 arguments: [slug]) {
-                throw RockyCoreError.projectAlreadyExists(name)
+                throw RockyError.projectAlreadyExists(name)
             }
             try db.execute(
                 sql: "INSERT INTO projects (name, slug, created_at) VALUES (?, ?, ?)",
@@ -61,7 +61,7 @@ public struct SQLiteProjectRepository: ProjectRepository, Sendable {
             if let existing = try Project.fetchOne(db,
                 sql: "SELECT * FROM projects WHERE slug = ? AND id != ?",
                 arguments: [slug, id]) {
-                throw RockyCoreError.projectAlreadyExists(existing.name)
+                throw RockyError.projectAlreadyExists(existing.name)
             }
             try db.execute(
                 sql: "UPDATE projects SET name = ?, slug = ? WHERE id = ?",
@@ -69,7 +69,7 @@ public struct SQLiteProjectRepository: ProjectRepository, Sendable {
             guard let updated = try Project.fetchOne(db,
                 sql: "SELECT * FROM projects WHERE id = ?",
                 arguments: [id]) else {
-                throw RockyCoreError.projectNotFound(String(id))
+                throw RockyError.projectNotFound(String(id))
             }
             return updated
         }

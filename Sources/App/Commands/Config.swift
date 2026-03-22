@@ -1,5 +1,6 @@
 import ArgumentParser
 import Foundation
+import RockyCore
 
 struct Config: ParsableCommand {
     static let configuration = CommandConfiguration(
@@ -16,7 +17,7 @@ struct Config: ParsableCommand {
         func run() throws {
             let config = try ConfigFile.load()
             guard let value = config[key] else {
-                throw ValidationError("Key \"\(key)\" is not set.")
+                throw RockyError.configKeyNotSet(key)
             }
             print("\(key) = \(value)")
         }

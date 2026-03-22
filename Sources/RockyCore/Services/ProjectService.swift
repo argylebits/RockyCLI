@@ -25,11 +25,11 @@ public struct ProjectService: Sendable {
 
     public func rename(oldName: String, newName: String) throws -> Project {
         guard let project = try repository.get(slug: oldName.slugified) else {
-            throw RockyCoreError.projectNotFound(oldName)
+            throw RockyError.projectNotFound(oldName)
         }
         let newSlug = newName.slugified
         if let existing = try repository.get(slug: newSlug), existing.id != project.id {
-            throw RockyCoreError.projectAlreadyExists(newName)
+            throw RockyError.projectAlreadyExists(newName)
         }
         return try repository.update(id: project.id, name: newName, slug: newSlug)
     }

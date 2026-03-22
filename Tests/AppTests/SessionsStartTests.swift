@@ -69,7 +69,7 @@ struct SessionsStartTests {
 
         var cmd = Sessions.Start()
         cmd.project = "acme-corp"
-        #expect(throws: (any Error).self) {
+        #expect(throws: RockyError.timerAlreadyRunning("acme-corp")) {
             try cmd.execute(ctx: ctx)
         }
     }
