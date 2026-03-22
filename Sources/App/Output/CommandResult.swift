@@ -7,16 +7,16 @@ struct StopEntry {
 }
 
 enum CommandResult {
-    // Sessions
-    case started(project: String, running: [String])
-    case stopped(entries: [StopEntry])
-    case status(statuses: [ProjectStatus])
-    case todayTotals(totals: ProjectTotals, period: String)
-    case grouped(report: GroupedReport, period: String, projectFilter: String?, hoursOnly: Bool)
-    case verbose(sessions: [VerboseSessionRow], period: String, projectFilter: String?)
-    case edited(session: Session)
+    // Session
+    case sessionStarted(project: String, running: [String])
+    case sessionStopped(entries: [StopEntry])
+    case sessionStatus(statuses: [ProjectStatus])
+    case sessionTodayTotals(totals: ProjectTotals, period: String)
+    case sessionGrouped(report: GroupedReport, period: String, projectFilter: String?, hoursOnly: Bool)
+    case sessionVerbose(sessions: [VerboseSessionRow], period: String, projectFilter: String?)
+    case sessionEdited(session: Session)
 
-    // Projects
+    // Project
     case projectList(projects: [Project])
     case projectRenamed(oldName: String, newName: String)
 

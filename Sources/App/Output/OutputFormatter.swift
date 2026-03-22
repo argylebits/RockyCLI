@@ -5,14 +5,14 @@ enum OutputFormatter {
 
     static func formatText(_ result: CommandResult) -> String {
         switch result {
-        case .started(let project, let running):
+        case .sessionStarted(let project, let running):
             var msg = "Started \(project)"
             if !running.isEmpty {
                 msg += "\nCurrently running: \(running.joined(separator: ", "))"
             }
             return msg
 
-        case .stopped(let entries):
+        case .sessionStopped(let entries):
             if entries.isEmpty {
                 return "No timers currently running."
             }
@@ -26,19 +26,19 @@ enum OutputFormatter {
                 return "Stopped \(padded)  (\(DurationFormat.formatted(entry.duration)))"
             }.joined(separator: "\n")
 
-        case .status(let statuses):
+        case .sessionStatus(let statuses):
             return Table.renderStatus(statuses)
 
-        case .todayTotals(let totals, let period):
+        case .sessionTodayTotals(let totals, let period):
             return Table.renderTodayTotals(totals, period: period)
 
-        case .grouped(let report, let period, let projectFilter, let hoursOnly):
+        case .sessionGrouped(let report, let period, let projectFilter, let hoursOnly):
             return Table.renderGrouped(report, period: period, projectFilter: projectFilter, hoursOnly: hoursOnly)
 
-        case .verbose(let sessions, let period, let projectFilter):
+        case .sessionVerbose(let sessions, let period, let projectFilter):
             return Table.renderVerbose(sessions, period: period, projectFilter: projectFilter)
 
-        case .edited(let session):
+        case .sessionEdited(let session):
             let startStr = session.startTime.formatted(DateTimeFormat.time)
             let stopStr = session.isRunning ? "running" : session.endTime!.formatted(DateTimeFormat.time)
             let durStr = DurationFormat.formatted(session.duration())
