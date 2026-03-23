@@ -1,6 +1,40 @@
 # Rocky — Commands Reference
 
-## rocky start <project>
+## Command structure
+
+Commands follow a `<resource> <action>` pattern. Top-level shortcuts exist for daily workflow commands.
+
+```
+# Resource groups
+rocky sessions start <project>
+rocky sessions stop [project] [--all]
+rocky sessions status [flags]
+rocky sessions edit [project] [flags]
+
+rocky projects list
+rocky projects rename <old> <new>
+
+# Standalone
+rocky dashboard
+rocky config get/set/list
+
+# Top-level shortcuts
+rocky start    → rocky sessions start
+rocky stop     → rocky sessions stop
+rocky status   → rocky sessions status
+```
+
+## Global flags
+
+| Flag | Description |
+|------|-------------|
+| `--output <format>` | Output format: `text` (default) or `json` |
+
+When `--output json` is used, all output (success and errors) is structured JSON.
+
+---
+
+## rocky sessions start <project>
 
 Starts a timer for the given project.
 
@@ -25,7 +59,7 @@ rocky start side-project
 
 ---
 
-## rocky stop [project] [--all]
+## rocky sessions stop [project] [--all]
 
 Stops a running timer.
 
@@ -50,7 +84,7 @@ Multiple timers running:
   2. side-project     0h 45m
 ────────────────────────────────
 
-Stop which? (1/2/all): 
+Stop which? (1/2/all):
 ```
 User types `1`, `2`, or `all`. Then confirm what was stopped:
 ```
@@ -75,7 +109,7 @@ No timers currently running.
 
 ---
 
-## rocky status [flags]
+## rocky sessions status [flags]
 
 Shows time tracking summary. See `OUTPUT.md` for exact table formatting.
 
@@ -117,39 +151,14 @@ When using `--from/--to`, automatically pick the best column grouping:
 
 ---
 
-## rocky dashboard
-
-Show an analytics dashboard with trends and insights.
-
-```bash
-rocky dashboard
-```
-
-**Behaviour:**
-- No flags — displays a full-width dashboard with multiple analytics widgets
-- Widgets include:
-  - Running timers (if any)
-  - Time summaries: this week, this month, this year (with week/month deltas showing change from previous period)
-  - Activity heatmap: 31-week grid (Mon-Sun rows, week columns) with intensity levels `· ░ ▒ ▓ █`
-  - Weekly trend: 31-week sparkline using `▁▂▃▄▅▆▇█` characters with month labels
-  - Project distribution: bar chart for current week with percentage breakdown
-  - Peak hours: intensity chart showing busiest hours of the day (24h format)
-  - Streaks & stats: two-column layout with current/longest streak, sessions this week, daily avg, avg/longest session, total hours, most active day, best day this week, top project
-- All widgets render full-width with uniform padding inside rounded single-line borders `╭─╮│╰─╯`
-- Dashboard uses double-line border `╔═╗║╚═╝` for outer frame
-- All data computed from session history — no additional database tables required
-- Week starts on Monday (per DECISIONS.md)
-
----
-
-## rocky edit [project] [flags]
+## rocky sessions edit [project] [flags]
 
 Edit the start, stop, or duration of a session.
 
 ### Interactive mode
 
 ```bash
-rocky edit rocky
+rocky sessions edit rocky
 ```
 
 Shows recent sessions for the project and prompts for which to edit:
@@ -180,12 +189,12 @@ Updated: Mon 09 Mar  23:20 — 01:30  (2h 10m)
 ### Non-interactive mode (flags)
 
 ```bash
-rocky edit --session 41 --start "2026-03-09 23:00" --stop "2026-03-10 01:30"
-rocky edit --session 41 --start "2026-03-09 23:00"
-rocky edit --session 41 --stop "2026-03-10 01:30"
-rocky edit --session 41 --duration 7800
-rocky edit --session 41 --start "2026-03-09 23:00" --duration 7800
-rocky edit --session 41 --stop "2026-03-10 01:30" --duration 7800
+rocky sessions edit --session 41 --start "2026-03-09 23:00" --stop "2026-03-10 01:30"
+rocky sessions edit --session 41 --start "2026-03-09 23:00"
+rocky sessions edit --session 41 --stop "2026-03-10 01:30"
+rocky sessions edit --session 41 --duration 7800
+rocky sessions edit --session 41 --start "2026-03-09 23:00" --duration 7800
+rocky sessions edit --session 41 --stop "2026-03-10 01:30" --duration 7800
 ```
 
 ### Flags
@@ -211,8 +220,8 @@ rocky edit --session 41 --stop "2026-03-10 01:30" --duration 7800
 
 ### Behaviour
 
-- **Interactive mode** (`rocky edit <project>`): shows sessions for the project, prompts for session ID, field, and new value
-- **Non-interactive mode** (`rocky edit --session <id> --start/--stop/--duration`): no prompts, fails with error if required flags are missing
+- **Interactive mode** (`rocky sessions edit <project>`): shows sessions for the project, prompts for session ID, field, and new value
+- **Non-interactive mode** (`rocky sessions edit --session <id> --start/--stop/--duration`): no prompts, fails with error if required flags are missing
 - Datetime format is always `YYYY-MM-DD HH:MM` in local timezone — no ambiguity for multi-day sessions
 - Duration input is in seconds (e.g. `7800` for 2h 10m). Output displays as `Xh Ym`.
 - **Validation:**
@@ -221,6 +230,67 @@ rocky edit --session 41 --stop "2026-03-10 01:30" --duration 7800
   - Cannot set start time to the future
   - Duration must be positive
 - On success, print the updated session details
+
+---
+
+## rocky dashboard
+
+Show an analytics dashboard with trends and insights.
+
+```bash
+rocky dashboard
+```
+
+**Behaviour:**
+- No flags — displays a full-width dashboard with multiple analytics widgets
+- Widgets include:
+  - Running timers (if any)
+  - Time summaries: this week, this month, this year (with week/month deltas showing change from previous period)
+  - Activity heatmap: 31-week grid (Mon-Sun rows, week columns) with intensity levels `· ░ ▒ ▓ █`
+  - Weekly trend: 31-week sparkline using `▁▂▃▄▅▆▇█` characters with month labels
+  - Project distribution: bar chart for current week with percentage breakdown
+  - Peak hours: intensity chart showing busiest hours of the day (24h format)
+  - Streaks & stats: two-column layout with current/longest streak, sessions this week, daily avg, avg/longest session, total hours, most active day, best day this week, top project
+- All widgets render full-width with uniform padding inside rounded single-line borders `╭─╮│╰─╯`
+- Dashboard uses double-line border `╔═╗║╚═╝` for outer frame
+- All data computed from session history — no additional database tables required
+- Week starts on Monday (per DECISIONS.md)
+
+---
+
+## rocky projects list
+
+List all projects.
+
+```bash
+rocky projects list
+```
+
+Output:
+```
+  Project           Created
+──────────────────────────────────
+  acme-corp         Jan 2026
+  side-project      Feb 2026
+  studio-client     Feb 2026
+  old-agency        Mar 2025
+```
+
+---
+
+## rocky projects rename <old> <new>
+
+Rename a project.
+
+```bash
+rocky projects rename acme-corp "Acme Inc"
+# Renamed acme-corp → Acme Inc
+```
+
+**Behaviour:**
+- Looks up the project by slug (normalized from `<old>`)
+- Updates both the display name and slug
+- Errors if the project is not found or the new name conflicts with an existing project
 
 ---
 
@@ -245,29 +315,30 @@ Config stored at `~/.rocky/config.json`.
 
 ---
 
-## rocky projects
+## JSON output
 
-List all projects.
+All commands support `--output json` for structured output:
 
 ```bash
-rocky projects
+rocky status --today --output json
+rocky stop acme-corp --output json
 ```
 
-Output:
+**Success output** returns the relevant models directly (sessions, projects, etc.).
+
+**Error output** returns a structured error envelope:
+
+```json
+{"error":{"code":"project_not_found","message":"Project not found: nonexistent"}}
 ```
-  Project           Created
-──────────────────────────────────
-  acme-corp         Jan 2026
-  side-project      Feb 2026
-  studio-client     Feb 2026
-  old-agency        Mar 2025
-```
+
+The `code` field is a machine-readable identifier. Error codes map directly to `RockyError` cases (e.g. `project_not_found`, `session_no_timer_running`, `session_timer_already_running`).
 
 ---
 
 ## General CLI behaviour
 
-- Project names are case-insensitive for matching (`ACME-CORP` matches `acme-corp`)
+- Project names are matched via normalized slugs (`Acme Corp` and `acme-corp` resolve to the same project)
 - Project names are stored exactly as first provided
 - Unknown project names in `start` auto-create the project
 - Unknown project names in `stop`/`status --project` print an error

@@ -10,7 +10,7 @@ Multiple projects can have timers running simultaneously. This is intentional �
 
 ## Project names as identifiers
 
-Projects are identified by name (not ID) in CLI commands. Names are case-insensitive for matching but stored as first provided. Auto-create project on first `rocky start <name>` — no separate `rocky add` command.
+Projects are identified by name (not ID) in CLI commands. Names are matched via normalized slugs (see "Slug-based project lookups" below) and stored exactly as first provided. Auto-create project on first `rocky start <name>` — no separate `rocky add` command.
 
 ## No "active/inactive" project state
 
