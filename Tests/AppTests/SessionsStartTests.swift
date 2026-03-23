@@ -89,6 +89,28 @@ struct SessionsStartTests {
         }
     }
 
+    @Test("start error formats as structured JSON when output is json")
+    func startErrorJSON() throws {
+        let (ctx, projectRepo, sessionRepo) = buildCtx(config: RockyConfig(autoStop: true))
+
+        let proj = try projectRepo.create(name: "acme-corp", slug: "acme-corp")
+        _ = try sessionRepo.create(projectId: proj.id, startTime: Date(), endTime: nil)
+
+        var cmd = Sessions.Start()
+        cmd.project = "acme-corp"
+        do {
+            _ = try cmd.execute(ctx: ctx)
+            Issue.record("Expected execute to throw")
+        } catch let error as RockyError {
+            let json = OutputFormatter.formatError(error)
+            let data = json.data(using: .utf8)!
+            let obj = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+            let errorObj = obj["error"] as! [String: Any]
+            #expect(errorObj["code"] as? String == "session_timer_already_running")
+            #expect(errorObj["message"] as? String == "Timer already running for acme-corp")
+        }
+    }
+
     @Test("start with auto-stop disabled allows duplicate timer for same project")
     func startAutoStopDisabled() throws {
         let (ctx, projectRepo, sessionRepo) = buildCtx(config: RockyConfig(autoStop: false))

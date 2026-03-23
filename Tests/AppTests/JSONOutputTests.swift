@@ -193,6 +193,19 @@ struct JSONOutputTests {
         #expect(projectJSON["slug"] as? String == "new-name")
     }
 
+    // MARK: - Error
+
+    @Test("formatError returns error envelope with code and message")
+    func formatError() throws {
+        let error = RockyError.sessionNoTimerRunning("Acme Corp")
+        let json = OutputFormatter.formatError(error)
+        assertValidJSON(json)
+        let obj = try decode(json)
+        let errorObj = obj["error"] as! [String: Any]
+        #expect(errorObj["code"] as? String == "session_no_timer_running")
+        #expect(errorObj["message"] as? String == "No timer running for Acme Corp.")
+    }
+
     // MARK: - Dates are ISO8601
 
     @Test("dates encode as ISO8601 strings")

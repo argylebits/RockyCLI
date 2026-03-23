@@ -124,4 +124,101 @@ struct RockyErrorTests {
         #expect(RockyError.projectNotFound("x") != RockyError.projectAlreadyExists("x"))
         #expect(RockyError.sessionNotFound(1) != RockyError.sessionNotFound(2))
     }
+
+    // MARK: - Code
+
+    @Test("invalidRow code")
+    func invalidRowCode() {
+        #expect(RockyError.invalidRow("projects").code == "invalid_row")
+    }
+
+    @Test("projectNotFound code")
+    func projectNotFoundCode() {
+        #expect(RockyError.projectNotFound("x").code == "project_not_found")
+    }
+
+    @Test("projectAlreadyExists code")
+    func projectAlreadyExistsCode() {
+        #expect(RockyError.projectAlreadyExists("x").code == "project_already_exists")
+    }
+
+    @Test("sessionNotFound code")
+    func sessionNotFoundCode() {
+        #expect(RockyError.sessionNotFound(1).code == "session_not_found")
+    }
+
+    @Test("sessionTimerAlreadyRunning code")
+    func sessionTimerAlreadyRunningCode() {
+        #expect(RockyError.sessionTimerAlreadyRunning("x").code == "session_timer_already_running")
+    }
+
+    @Test("sessionNoTimerRunning code")
+    func sessionNoTimerRunningCode() {
+        #expect(RockyError.sessionNoTimerRunning("x").code == "session_no_timer_running")
+    }
+
+    @Test("sessionRunningSessionStop code")
+    func sessionRunningSessionStopCode() {
+        #expect(RockyError.sessionRunningSessionStop.code == "session_running_session_stop")
+    }
+
+    @Test("sessionStartTimeInFuture code")
+    func sessionStartTimeInFutureCode() {
+        #expect(RockyError.sessionStartTimeInFuture.code == "session_start_time_in_future")
+    }
+
+    @Test("sessionStopBeforeStart code")
+    func sessionStopBeforeStartCode() {
+        #expect(RockyError.sessionStopBeforeStart.code == "session_stop_before_start")
+    }
+
+    @Test("sessionDurationNotPositive code")
+    func sessionDurationNotPositiveCode() {
+        #expect(RockyError.sessionDurationNotPositive.code == "session_duration_not_positive")
+    }
+
+    @Test("sessionOverdetermined code")
+    func sessionOverdeterminedCode() {
+        #expect(RockyError.sessionOverdetermined.code == "session_overdetermined")
+    }
+
+    @Test("sessionInvalidDateFormat code")
+    func sessionInvalidDateFormatCode() {
+        #expect(RockyError.sessionInvalidDateFormat("x").code == "session_invalid_date_format")
+    }
+
+    @Test("sessionInputCancelled code")
+    func sessionInputCancelledCode() {
+        #expect(RockyError.sessionInputCancelled.code == "session_input_cancelled")
+    }
+
+    @Test("sessionMissingArgument code")
+    func sessionMissingArgumentCode() {
+        #expect(RockyError.sessionMissingArgument("x").code == "session_missing_argument")
+    }
+
+    @Test("configKeyNotSet code")
+    func configKeyNotSetCode() {
+        #expect(RockyError.configKeyNotSet("x").code == "config_key_not_set")
+    }
+
+    // MARK: - Encodable
+
+    @Test("encodes to JSON with code and message keys")
+    func encodable() throws {
+        let error = RockyError.projectNotFound("acme-corp")
+        let data = try JSONEncoder().encode(error)
+        let obj = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        #expect(obj["code"] as? String == "project_not_found")
+        #expect(obj["message"] as? String == "Project not found: acme-corp")
+    }
+
+    @Test("encodes plain case to JSON")
+    func encodablePlainCase() throws {
+        let error = RockyError.sessionOverdetermined
+        let data = try JSONEncoder().encode(error)
+        let obj = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        #expect(obj["code"] as? String == "session_overdetermined")
+        #expect(obj["message"] as? String == "Cannot specify --start, --stop, and --duration together.")
+    }
 }

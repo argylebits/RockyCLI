@@ -12,6 +12,10 @@ enum OutputFormatter {
         return encoder
     }()
 
+    static func formatError(_ error: RockyError) -> String {
+        return encode(["error": error])
+    }
+
     static func formatJSON(_ result: CommandResult) -> String {
         switch result {
         case .sessionStarted(let session, _, _):

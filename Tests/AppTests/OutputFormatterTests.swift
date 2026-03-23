@@ -206,4 +206,28 @@ struct OutputFormatterTests {
         let text = OutputFormatter.formatText(result)
         #expect(text == "No sessions found for Acme Corp.")
     }
+
+    // MARK: - Error
+
+    @Test("formatError includes code and message")
+    func formatErrorWithAssociatedValue() throws {
+        let error = RockyError.projectNotFound("acme-corp")
+        let json = OutputFormatter.formatError(error)
+        let data = json.data(using: .utf8)!
+        let obj = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        let errorObj = obj["error"] as! [String: Any]
+        #expect(errorObj["code"] as? String == "project_not_found")
+        #expect(errorObj["message"] as? String == "Project not found: acme-corp")
+    }
+
+    @Test("formatError with plain case")
+    func formatErrorPlainCase() throws {
+        let error = RockyError.sessionOverdetermined
+        let json = OutputFormatter.formatError(error)
+        let data = json.data(using: .utf8)!
+        let obj = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        let errorObj = obj["error"] as! [String: Any]
+        #expect(errorObj["code"] as? String == "session_overdetermined")
+        #expect(errorObj["message"] as? String == "Cannot specify --start, --stop, and --duration together.")
+    }
 }

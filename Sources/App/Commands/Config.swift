@@ -17,8 +17,13 @@ struct Config: ParsableCommand {
         @OptionGroup var outputOptions: OutputOptions
 
         func run() throws {
-            let result = try execute()
-            output(result, options: outputOptions)
+            do {
+                let result = try execute()
+                output(result, options: outputOptions)
+            } catch let error as RockyError {
+                outputError(error, options: outputOptions)
+                throw ExitCode.failure
+            }
         }
 
         @discardableResult
@@ -43,8 +48,13 @@ struct Config: ParsableCommand {
         @OptionGroup var outputOptions: OutputOptions
 
         func run() throws {
-            let result = try execute()
-            output(result, options: outputOptions)
+            do {
+                let result = try execute()
+                output(result, options: outputOptions)
+            } catch let error as RockyError {
+                outputError(error, options: outputOptions)
+                throw ExitCode.failure
+            }
         }
 
         @discardableResult
@@ -62,8 +72,13 @@ struct Config: ParsableCommand {
         @OptionGroup var outputOptions: OutputOptions
 
         func run() throws {
-            let result = try execute()
-            output(result, options: outputOptions)
+            do {
+                let result = try execute()
+                output(result, options: outputOptions)
+            } catch let error as RockyError {
+                outputError(error, options: outputOptions)
+                throw ExitCode.failure
+            }
         }
 
         @discardableResult
