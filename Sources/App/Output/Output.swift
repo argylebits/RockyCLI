@@ -15,7 +15,7 @@ func output(_ result: CommandResult, options: OutputOptions) {
 func outputError(_ error: RockyError, options: OutputOptions) {
     switch options.output {
     case .text:
-        fputs("\nError: \(error.description)\n\n", stderr)
+        FileHandle.standardError.write(Data("\nError: \(error.description)\n\n".utf8))
     case .json:
         print(OutputFormatter.formatError(error))
     }
