@@ -10,9 +10,14 @@ struct Dashboard: ParsableCommand {
     @OptionGroup var outputOptions: OutputOptions
 
     func run() throws {
-        let ctx = try AppContext.build()
-        let result = try execute(ctx: ctx)
-        output(result, options: outputOptions)
+        do {
+            let ctx = try AppContext.build()
+            let result = try execute(ctx: ctx)
+            output(result, options: outputOptions)
+        } catch let error as RockyError {
+            outputError(error, options: outputOptions)
+            throw ExitCode.failure
+        }
     }
 
     @discardableResult

@@ -121,6 +121,24 @@ struct SessionsStopTests {
         }
     }
 
+    @Test("stop error formats as structured JSON when output is json")
+    func stopErrorJSON() throws {
+        let (ctx, _, _) = buildCtx()
+
+        let cmd = makeStop(project: "nonexistent")
+        do {
+            _ = try cmd.execute(ctx: ctx)
+            Issue.record("Expected execute to throw")
+        } catch let error as RockyError {
+            let json = OutputFormatter.formatError(error)
+            let data = json.data(using: .utf8)!
+            let obj = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+            let errorObj = obj["error"] as! [String: Any]
+            #expect(errorObj["code"] as? String == "project_not_found")
+            #expect(errorObj["message"] as? String == "Project not found: nonexistent")
+        }
+    }
+
     @Test("stop by project name throws when no timer running for project")
     func stopProjectNotRunning() throws {
         let (ctx, projectRepo, _) = buildCtx()

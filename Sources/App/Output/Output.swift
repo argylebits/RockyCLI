@@ -1,3 +1,6 @@
+import Foundation
+import RockyCore
+
 func output(_ result: CommandResult, options: OutputOptions) {
     switch options.output {
     case .text:
@@ -6,5 +9,14 @@ func output(_ result: CommandResult, options: OutputOptions) {
         print()
     case .json:
         print(OutputFormatter.formatJSON(result))
+    }
+}
+
+func outputError(_ error: RockyError, options: OutputOptions) {
+    switch options.output {
+    case .text:
+        fputs("\nError: \(error.description)\n\n", stderr)
+    case .json:
+        print(OutputFormatter.formatError(error))
     }
 }

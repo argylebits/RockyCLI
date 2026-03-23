@@ -24,6 +24,26 @@ public enum RockyError: Error, Equatable, CustomStringConvertible {
     // Config
     case configKeyNotSet(String)
 
+    public var code: String {
+        switch self {
+        case .invalidRow: return "invalid_row"
+        case .projectNotFound: return "project_not_found"
+        case .projectAlreadyExists: return "project_already_exists"
+        case .sessionNotFound: return "session_not_found"
+        case .sessionTimerAlreadyRunning: return "session_timer_already_running"
+        case .sessionNoTimerRunning: return "session_no_timer_running"
+        case .sessionRunningSessionStop: return "session_running_session_stop"
+        case .sessionStartTimeInFuture: return "session_start_time_in_future"
+        case .sessionStopBeforeStart: return "session_stop_before_start"
+        case .sessionDurationNotPositive: return "session_duration_not_positive"
+        case .sessionOverdetermined: return "session_overdetermined"
+        case .sessionInvalidDateFormat: return "session_invalid_date_format"
+        case .sessionInputCancelled: return "session_input_cancelled"
+        case .sessionMissingArgument: return "session_missing_argument"
+        case .configKeyNotSet: return "config_key_not_set"
+        }
+    }
+
     public var description: String {
         switch self {
         case .invalidRow(let table):
@@ -60,5 +80,17 @@ public enum RockyError: Error, Equatable, CustomStringConvertible {
         case .configKeyNotSet(let key):
             return "Key \"\(key)\" is not set."
         }
+    }
+}
+
+extension RockyError: Encodable {
+    private enum CodingKeys: String, CodingKey {
+        case code, message
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(code, forKey: .code)
+        try container.encode(description, forKey: .message)
     }
 }
