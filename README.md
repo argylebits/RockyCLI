@@ -37,6 +37,31 @@ rocky stop
 
 That's it. No accounts, no setup, no config files required.
 
+## Command structure
+
+Commands follow a `<resource> <action>` pattern:
+
+```
+rocky sessions start <project>
+rocky sessions stop [project] [--all]
+rocky sessions status [flags]
+rocky sessions edit [project] [flags]
+
+rocky projects list
+rocky projects rename <old> <new>
+
+rocky dashboard
+rocky config get/set/list
+```
+
+Top-level shortcuts for daily workflow:
+
+```
+rocky start    → rocky sessions start
+rocky stop     → rocky sessions stop
+rocky status   → rocky sessions status
+```
+
 ## Commands
 
 ### `rocky start <project>`
@@ -126,6 +151,30 @@ Period:  Mon 02 Mar — Fri 06 Mar 2026
                                                      19h 45m
 ```
 
+### `rocky sessions edit [project] [flags]`
+
+Edit the start, stop, or duration of a session.
+
+```bash
+# Interactive — shows recent sessions, prompts for what to edit
+rocky sessions edit acme-corp
+
+# Non-interactive — edit by session ID (shown in --verbose output)
+rocky sessions edit --session 41 --start "2026-03-09 23:00" --stop "2026-03-10 01:30"
+rocky sessions edit --session 41 --start "2026-03-09 23:00"
+rocky sessions edit --session 41 --stop "2026-03-10 01:30"
+rocky sessions edit --session 41 --duration 7800
+rocky sessions edit --session 41 --start "2026-03-09 23:00" --duration 7800
+rocky sessions edit --session 41 --stop "2026-03-10 01:30" --duration 7800
+```
+
+| Flag | Description |
+|------|-------------|
+| `--session <id>` | Session ID (shown in `--verbose` output) |
+| `--start <datetime>` | New start time (`YYYY-MM-DD HH:MM`) |
+| `--stop <datetime>` | New stop time (`YYYY-MM-DD HH:MM`) |
+| `--duration <seconds>` | Duration in seconds — used to compute start or stop |
+
 ### `rocky dashboard`
 
 Show an analytics dashboard with trends and insights.
@@ -143,36 +192,12 @@ Displays a full-width dashboard including:
 - Peak working hours
 - Streaks & stats (streak, sessions, daily avg, total hours, top project, and more)
 
-### `rocky edit [project] [flags]`
-
-Edit the start, stop, or duration of a session.
-
-```bash
-# Interactive — shows recent sessions, prompts for what to edit
-rocky edit acme-corp
-
-# Non-interactive — edit by session ID (shown in --verbose output)
-rocky edit --session 41 --start "2026-03-09 23:00" --stop "2026-03-10 01:30"
-rocky edit --session 41 --start "2026-03-09 23:00"
-rocky edit --session 41 --stop "2026-03-10 01:30"
-rocky edit --session 41 --duration 7800
-rocky edit --session 41 --start "2026-03-09 23:00" --duration 7800
-rocky edit --session 41 --stop "2026-03-10 01:30" --duration 7800
-```
-
-| Flag | Description |
-|------|-------------|
-| `--session <id>` | Session ID (shown in `--verbose` output) |
-| `--start <datetime>` | New start time (`YYYY-MM-DD HH:MM`) |
-| `--stop <datetime>` | New stop time (`YYYY-MM-DD HH:MM`) |
-| `--duration <seconds>` | Duration in seconds — used to compute start or stop |
-
-### `rocky projects`
+### `rocky projects list`
 
 List all projects.
 
 ```bash
-rocky projects
+rocky projects list
 ```
 
 ```
@@ -181,6 +206,15 @@ rocky projects
   acme-corp         Jan 2026
   side-project      Feb 2026
   studio-client     Feb 2026
+```
+
+### `rocky projects rename <old> <new>`
+
+Rename a project.
+
+```bash
+rocky projects rename acme-corp "Acme Inc"
+# Renamed acme-corp → Acme Inc
 ```
 
 ### `rocky config`
@@ -197,10 +231,26 @@ rocky config set auto-stop true # set a value
 |---------|---------|-------------|
 | `auto-stop` | `true` | Prevent starting duplicate timers on the same project |
 
+## JSON output
+
+All commands support `--output json` for scripting and automation:
+
+```bash
+rocky status --today --output json | jq '.sessions[].start_time'
+rocky stop acme-corp --output json
+```
+
+Errors are also structured:
+
+```bash
+rocky stop nonexistent --output json
+# {"error":{"code":"project_not_found","message":"Project not found: nonexistent"}}
+```
+
 ## How it works
 
 - Data is stored locally in `~/.rocky/rocky.db` (SQLite)
-- Project names are case-insensitive for matching, stored as first entered
+- Project names are matched via normalized slugs (e.g. `Acme Corp` and `acme-corp` resolve to the same project)
 - All times displayed in your local timezone
 - Durations shown as `Xh Ym` (e.g., `2h 30m`, `0h 45m`)
 
