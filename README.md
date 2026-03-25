@@ -1,5 +1,8 @@
 # Rocky
 
+<!-- Fresco image -->
+![RockyCLI](https://pub-d60dc12417c74d04b3dd6a1ed43e02c4.r2.dev/rocky-cli/2026-03-25-181021.jpg)
+
 A fast, local CLI time tracker. Track time across projects, view reports by day/week/month/year, and drill down into individual sessions. All data stays on your machine in a local SQLite database.
 
 ## Installation
