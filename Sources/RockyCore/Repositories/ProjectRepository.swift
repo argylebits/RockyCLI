@@ -6,4 +6,5 @@ public protocol ProjectRepository: Sendable {
     func get(slug: String) throws -> Project?
     func list() throws -> [Project]
     func update(id: Int, name: String, slug: String) throws -> Project
+    func delete(id: Int) throws
 }

@@ -5,7 +5,7 @@ import RockyCore
 struct Sessions: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Manage sessions.",
-        subcommands: [Start.self, Stop.self, Status.self, Edit.self]
+        subcommands: [Start.self, Stop.self, Status.self, Edit.self, Delete.self]
     )
 
     struct Start: ParsableCommand {
@@ -607,5 +607,88 @@ struct Sessions: ParsableCommand {
             }
         }
 
+    }
+
+    struct Delete: ParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "Delete a session."
+        )
+
+        @Argument(help: "The session ID to delete.")
+        var id: Int?
+
+        @OptionGroup var outputOptions: OutputOptions
+
+        func run() throws {
+            do {
+                let ctx = try AppContext.build()
+                let result = try execute(ctx: ctx)
+                output(result, options: outputOptions)
+            } catch let error as RockyError {
+                outputError(error, options: outputOptions)
+                throw ExitCode.failure
+            }
+        }
+
+        @discardableResult
+        func execute(ctx: AppContext) throws -> CommandResult {
+            if let sessionId = id {
+                return try deleteById(sessionId, ctx: ctx)
+            } else {
+                return try interactive(ctx: ctx)
+            }
+        }
+
+        private func deleteById(_ sessionId: Int, ctx: AppContext) throws -> CommandResult {
+            guard let session = try ctx.sessionService.get(id: sessionId) else {
+                throw RockyError.sessionNotFound(sessionId)
+            }
+            guard let project = try ctx.projectService.get(id: session.projectId) else {
+                throw RockyError.invalidRow("projects")
+            }
+            try ctx.sessionService.delete(id: sessionId)
+            return .sessionDeleted(session: session, projectName: project.name)
+        }
+
+        private func interactive(ctx: AppContext) throws -> CommandResult {
+            let calendar = Calendar.current
+            let to = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: Date()))!
+            let from = calendar.date(byAdding: .day, value: -90, to: to)!
+            let sessions = try ctx.sessionService.list(from: from, to: to)
+
+            if sessions.isEmpty {
+                return .message("No sessions found.")
+            }
+
+            let verboseRows = sessions.map { session, project in
+                VerboseSessionRow(session: session, projectName: project.name)
+            }
+            let period = DateTimeFormat.periodRange(from: from, to: to)
+            print()
+            print(Table.renderVerbose(verboseRows, period: period, projectFilter: nil))
+            print()
+
+            let sessionId = try promptForSessionId(sessions: sessions.map(\.0))
+            return try deleteById(sessionId, ctx: ctx)
+        }
+
+        private func promptForSessionId(sessions: [Session]) throws -> Int {
+            let validIds = Set(sessions.map(\.id))
+            while true {
+                print("Delete which? ", terminator: "")
+                guard let line = readLine() else {
+                    throw RockyError.sessionInputCancelled
+                }
+                let input = line.trimmingCharacters(in: .whitespaces)
+                guard let id = Int(input) else {
+                    print("Invalid input. Enter a session ID.")
+                    continue
+                }
+                if validIds.contains(id) {
+                    return id
+                }
+                print("No session with ID \(id). Try again.")
+            }
+        }
     }
 }

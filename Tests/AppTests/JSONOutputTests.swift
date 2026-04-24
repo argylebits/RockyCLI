@@ -124,6 +124,34 @@ struct JSONOutputTests {
         #expect(sessions[0]["project_id"] as? Int == 2)
     }
 
+    // MARK: - Session Deleted
+
+    @Test("sessionDeleted returns session model")
+    func sessionDeleted() throws {
+        let session = Session(id: 41, projectId: 1, startTime: Date().addingTimeInterval(-3600), endTime: Date())
+        let result = CommandResult.sessionDeleted(session: session, projectName: "acme-corp")
+        let json = OutputFormatter.formatJSON(result)
+        assertValidJSON(json)
+        let obj = try decode(json)
+        let sessionJSON = obj["session"] as! [String: Any]
+        #expect(sessionJSON["id"] as? Int == 41)
+        #expect(sessionJSON["project_id"] as? Int == 1)
+    }
+
+    // MARK: - Project Deleted
+
+    @Test("projectDeleted returns project model and session count")
+    func projectDeleted() throws {
+        let project = Project(id: 1, parentId: nil, name: "acme-corp", slug: "acme-corp", createdAt: Date())
+        let result = CommandResult.projectDeleted(project: project, sessionCount: 47)
+        let json = OutputFormatter.formatJSON(result)
+        assertValidJSON(json)
+        let obj = try decode(json)
+        let projectJSON = obj["project"] as! [String: Any]
+        #expect(projectJSON["name"] as? String == "acme-corp")
+        #expect(obj["sessions_deleted"] as? Int == 47)
+    }
+
     // MARK: - Project List
 
     @Test("projectList returns project models")
