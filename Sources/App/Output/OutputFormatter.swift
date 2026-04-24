@@ -21,19 +21,20 @@ enum OutputFormatter {
         case .sessionStarted(let session, _, _):
             return encode(["session": session])
 
-        case .sessionStopped(let sessions, let projects):
-            return encode(SessionsWithProjects(sessions: sessions, projects: projects))
+        case .sessionStopped(let stopped):
+            return encode(["sessions": stopped.map(\.session)])
 
         case .sessionStatus(let statuses):
+            struct StatusOutput: Encodable { let sessions: [Session]; let projects: [Project] }
             let projects = statuses.map(\.project)
             let sessions = statuses.compactMap(\.runningSession)
-            return encode(SessionsWithProjects(sessions: sessions, projects: projects))
+            return encode(StatusOutput(sessions: sessions, projects: projects))
 
-        case .sessionTodayTotals(_, _, let sessions, let projects):
-            return encode(SessionsWithProjects(sessions: sessions, projects: projects))
+        case .sessionTodayTotals(_, _, let sessions):
+            return encode(["sessions": sessions])
 
-        case .sessionGrouped(_, _, _, _, let sessions, let projects):
-            return encode(SessionsWithProjects(sessions: sessions, projects: projects))
+        case .sessionGrouped(_, _, _, _, let sessions):
+            return encode(["sessions": sessions])
 
         case .sessionVerbose(let rows, _, _):
             return encode(["sessions": rows.map(\.session)])
@@ -78,32 +79,27 @@ enum OutputFormatter {
             }
             return msg
 
-        case .sessionStopped(let sessions, let projects):
-            if sessions.isEmpty {
+        case .sessionStopped(let stopped):
+            if stopped.isEmpty {
                 return "No timers currently running."
             }
-            let projectById = Dictionary(uniqueKeysWithValues: projects.map { ($0.id, $0) })
-            if sessions.count == 1 {
-                let s = sessions[0]
-                let name = projectById[s.projectId]?.name ?? "Unknown"
-                return "Stopped \(name) (\(DurationFormat.formatted(s.duration())))"
+            if stopped.count == 1 {
+                let entry = stopped[0]
+                return "Stopped \(entry.projectName) (\(DurationFormat.formatted(entry.session.duration())))"
             }
-            let entries = sessions.map { s in
-                (name: projectById[s.projectId]?.name ?? "Unknown", duration: s.duration())
-            }
-            let maxName = entries.map(\.name.count).max() ?? 0
-            return entries.map { entry in
-                let padded = entry.name.padding(toLength: maxName, withPad: " ", startingAt: 0)
-                return "Stopped \(padded)  (\(DurationFormat.formatted(entry.duration)))"
+            let maxName = stopped.map(\.projectName.count).max() ?? 0
+            return stopped.map { entry in
+                let padded = entry.projectName.padding(toLength: maxName, withPad: " ", startingAt: 0)
+                return "Stopped \(padded)  (\(DurationFormat.formatted(entry.session.duration())))"
             }.joined(separator: "\n")
 
         case .sessionStatus(let statuses):
             return Table.renderStatus(statuses)
 
-        case .sessionTodayTotals(let totals, let period, _, _):
+        case .sessionTodayTotals(let totals, let period, _):
             return Table.renderTodayTotals(totals, period: period)
 
-        case .sessionGrouped(let report, let period, let projectFilter, let hoursOnly, _, _):
+        case .sessionGrouped(let report, let period, let projectFilter, let hoursOnly, _):
             return Table.renderGrouped(report, period: period, projectFilter: projectFilter, hoursOnly: hoursOnly)
 
         case .sessionVerbose(let sessions, let period, let projectFilter):
