@@ -165,9 +165,8 @@ struct JSONOutputTests {
 
     @Test("sessionStopped returns session models")
     func sessionStopped() throws {
-        let project = Project(id: 1, parentId: nil, name: "Acme Corp", slug: "acme-corp", createdAt: Date())
         let session = Session(id: 5, projectId: 1, startTime: Date().addingTimeInterval(-3600), endTime: Date())
-        let result = CommandResult.sessionStopped(sessions: [session], projects: [project])
+        let result = CommandResult.sessionStopped(stopped: [(session: session, projectName: "Acme Corp")])
         let json = OutputFormatter.formatJSON(result)
         assertValidJSON(json)
         let obj = try decode(json)
@@ -175,8 +174,7 @@ struct JSONOutputTests {
         #expect(sessions.count == 1)
         #expect(sessions[0]["id"] as? Int == 5)
         #expect(sessions[0]["end_time"] as? String != nil)
-        let projects = obj["projects"] as! [[String: Any]]
-        #expect(projects[0]["name"] as? String == "Acme Corp")
+        #expect(sessions[0]["project_id"] as? Int == 1)
     }
 
     // MARK: - Project Renamed

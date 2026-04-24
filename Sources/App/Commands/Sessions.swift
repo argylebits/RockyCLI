@@ -84,13 +84,13 @@ struct Sessions: ParsableCommand {
             let running = try ctx.sessionService.list(running: true)
 
             if running.isEmpty {
-                return .sessionStopped(sessions: [], projects: [])
+                return .sessionStopped(stopped: [])
             }
 
             if running.count == 1 {
                 let (session, proj) = running[0]
                 let stopped = try ctx.sessionService.update(id: session.id, startTime: session.startTime, endTime: Date())
-                return .sessionStopped(sessions: [stopped], projects: [proj])
+                return .sessionStopped(stopped: [(session: stopped, projectName: proj.name)])
             }
 
             // Multiple running — interactive prompt
@@ -112,7 +112,7 @@ struct Sessions: ParsableCommand {
                 if let num = Int(input), num >= 1, num <= running.count {
                     let (session, proj) = running[num - 1]
                     let stopped = try ctx.sessionService.update(id: session.id, startTime: session.startTime, endTime: Date())
-                    return .sessionStopped(sessions: [stopped], projects: [proj])
+                    return .sessionStopped(stopped: [(session: stopped, projectName: proj.name)])
                 }
 
                 print("Invalid choice. Try again.")
@@ -128,25 +128,23 @@ struct Sessions: ParsableCommand {
                 throw RockyError.sessionNoTimerRunning(proj.name)
             }
             let stopped = try ctx.sessionService.update(id: session.id, startTime: session.startTime, endTime: Date())
-            return .sessionStopped(sessions: [stopped], projects: [proj])
+            return .sessionStopped(stopped: [(session: stopped, projectName: proj.name)])
         }
 
         private func stopAll(ctx: AppContext) throws -> CommandResult {
             let running = try ctx.sessionService.list(running: true)
             if running.isEmpty {
-                return .sessionStopped(sessions: [], projects: [])
+                return .sessionStopped(stopped: [])
             }
 
             let now = Date()
-            var stoppedSessions: [Session] = []
-            var stoppedProjects: [Project] = []
+            var result: [(session: Session, projectName: String)] = []
             for (session, proj) in running {
                 let stopped = try ctx.sessionService.update(id: session.id, startTime: session.startTime, endTime: now)
-                stoppedSessions.append(stopped)
-                stoppedProjects.append(proj)
+                result.append((session: stopped, projectName: proj.name))
             }
 
-            return .sessionStopped(sessions: stoppedSessions, projects: stoppedProjects)
+            return .sessionStopped(stopped: result)
         }
     }
 
@@ -221,8 +219,8 @@ struct Sessions: ParsableCommand {
                     return .sessionVerbose(sessions: sessions, period: Date().formatted(DateTimeFormat.fullDate), projectFilter: project)
                 } else {
                     let totals = try ctx.reportService.totals(from: start, to: endOfToday, projectId: projectId)
-                    let (rawSessions, rawProjects) = try fetchSessions(ctx: ctx, from: start, to: endOfToday, projectId: projectId)
-                    return .sessionTodayTotals(totals: totals, period: Date().formatted(DateTimeFormat.fullDate), sessions: rawSessions, projects: rawProjects)
+                    let sessions = try ctx.sessionService.list(from: start, to: endOfToday, projectId: projectId).map(\.0)
+                    return .sessionTodayTotals(totals: totals, period: Date().formatted(DateTimeFormat.fullDate), sessions: sessions)
                 }
             }
 
@@ -234,8 +232,8 @@ struct Sessions: ParsableCommand {
                     return .sessionVerbose(sessions: sessions, period: period, projectFilter: project)
                 } else {
                     let report = try ctx.reportService.groupedByDay(from: start, to: endOfToday, projectId: projectId)
-                    let (rawSessions, rawProjects) = try fetchSessions(ctx: ctx, from: start, to: endOfToday, projectId: projectId)
-                    return .sessionGrouped(report: report, period: period, projectFilter: project, hoursOnly: false, sessions: rawSessions, projects: rawProjects)
+                    let sessions = try ctx.sessionService.list(from: start, to: endOfToday, projectId: projectId).map(\.0)
+                    return .sessionGrouped(report: report, period: period, projectFilter: project, hoursOnly: false, sessions: sessions)
                 }
             }
 
@@ -247,8 +245,8 @@ struct Sessions: ParsableCommand {
                     return .sessionVerbose(sessions: sessions, period: period, projectFilter: project)
                 } else {
                     let report = try ctx.reportService.groupedByWeekOfMonth(from: start, to: endOfToday, projectId: projectId)
-                    let (rawSessions, rawProjects) = try fetchSessions(ctx: ctx, from: start, to: endOfToday, projectId: projectId)
-                    return .sessionGrouped(report: report, period: period, projectFilter: project, hoursOnly: false, sessions: rawSessions, projects: rawProjects)
+                    let sessions = try ctx.sessionService.list(from: start, to: endOfToday, projectId: projectId).map(\.0)
+                    return .sessionGrouped(report: report, period: period, projectFilter: project, hoursOnly: false, sessions: sessions)
                 }
             }
 
@@ -260,8 +258,8 @@ struct Sessions: ParsableCommand {
                     return .sessionVerbose(sessions: sessions, period: period, projectFilter: project)
                 } else {
                     let report = try ctx.reportService.groupedByMonth(from: start, to: endOfToday, projectId: projectId)
-                    let (rawSessions, rawProjects) = try fetchSessions(ctx: ctx, from: start, to: endOfToday, projectId: projectId)
-                    return .sessionGrouped(report: report, period: period, projectFilter: project, hoursOnly: true, sessions: rawSessions, projects: rawProjects)
+                    let sessions = try ctx.sessionService.list(from: start, to: endOfToday, projectId: projectId).map(\.0)
+                    return .sessionGrouped(report: report, period: period, projectFilter: project, hoursOnly: true, sessions: sessions)
                 }
             }
 
@@ -292,26 +290,17 @@ struct Sessions: ParsableCommand {
                 return .sessionVerbose(sessions: sessions, period: period, projectFilter: project)
             } else if days <= 7 {
                 let report = try ctx.reportService.groupedByDay(from: fromDate, to: toDate, projectId: projectId)
-                let (rawSessions, rawProjects) = try fetchSessions(ctx: ctx, from: fromDate, to: toDate, projectId: projectId)
-                return .sessionGrouped(report: report, period: period, projectFilter: project, hoursOnly: false, sessions: rawSessions, projects: rawProjects)
+                let sessions = try ctx.sessionService.list(from: fromDate, to: toDate, projectId: projectId).map(\.0)
+                return .sessionGrouped(report: report, period: period, projectFilter: project, hoursOnly: false, sessions: sessions)
             } else if days <= 60 {
                 let report = try ctx.reportService.groupedByWeek(from: fromDate, to: toDate, projectId: projectId)
-                let (rawSessions, rawProjects) = try fetchSessions(ctx: ctx, from: fromDate, to: toDate, projectId: projectId)
-                return .sessionGrouped(report: report, period: period, projectFilter: project, hoursOnly: false, sessions: rawSessions, projects: rawProjects)
+                let sessions = try ctx.sessionService.list(from: fromDate, to: toDate, projectId: projectId).map(\.0)
+                return .sessionGrouped(report: report, period: period, projectFilter: project, hoursOnly: false, sessions: sessions)
             } else {
                 let report = try ctx.reportService.groupedByMonth(from: fromDate, to: toDate, projectId: projectId)
-                let (rawSessions, rawProjects) = try fetchSessions(ctx: ctx, from: fromDate, to: toDate, projectId: projectId)
-                return .sessionGrouped(report: report, period: period, projectFilter: project, hoursOnly: true, sessions: rawSessions, projects: rawProjects)
+                let sessions = try ctx.sessionService.list(from: fromDate, to: toDate, projectId: projectId).map(\.0)
+                return .sessionGrouped(report: report, period: period, projectFilter: project, hoursOnly: true, sessions: sessions)
             }
-        }
-
-        // MARK: - Helpers
-
-        private func fetchSessions(ctx: AppContext, from: Date, to: Date, projectId: Int?) throws -> ([Session], [Project]) {
-            let pairs = try ctx.sessionService.list(from: from, to: to, projectId: projectId)
-            let sessions = pairs.map(\.0)
-            let uniqueProjects = Dictionary(uniqueKeysWithValues: pairs.map { ($0.1.id, $0.1) })
-            return (sessions, Array(uniqueProjects.values))
         }
 
         // MARK: - Date helpers
