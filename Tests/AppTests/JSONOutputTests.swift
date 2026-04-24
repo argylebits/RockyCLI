@@ -92,6 +92,38 @@ struct JSONOutputTests {
         #expect(sessions[0]["end_time"] as? String != nil)
     }
 
+    // MARK: - Session Today Totals
+
+    @Test("sessionTodayTotals returns sessions array")
+    func sessionTodayTotals() throws {
+        let session = Session(id: 3, projectId: 1, startTime: Date().addingTimeInterval(-3600), endTime: Date())
+        let totals = ProjectTotals(entries: [])
+        let result = CommandResult.sessionTodayTotals(totals: totals, period: "Apr 23", sessions: [session])
+        let json = OutputFormatter.formatJSON(result)
+        assertValidJSON(json)
+        let obj = try decode(json)
+        let sessions = obj["sessions"] as! [[String: Any]]
+        #expect(sessions.count == 1)
+        #expect(sessions[0]["id"] as? Int == 3)
+        #expect(sessions[0]["project_id"] as? Int == 1)
+    }
+
+    // MARK: - Session Grouped
+
+    @Test("sessionGrouped returns sessions array")
+    func sessionGrouped() throws {
+        let session = Session(id: 8, projectId: 2, startTime: Date().addingTimeInterval(-7200), endTime: Date())
+        let report = GroupedReport(columns: ["Mon"], rows: [])
+        let result = CommandResult.sessionGrouped(report: report, period: "Apr 21 – Apr 23", projectFilter: nil, hoursOnly: false, sessions: [session])
+        let json = OutputFormatter.formatJSON(result)
+        assertValidJSON(json)
+        let obj = try decode(json)
+        let sessions = obj["sessions"] as! [[String: Any]]
+        #expect(sessions.count == 1)
+        #expect(sessions[0]["id"] as? Int == 8)
+        #expect(sessions[0]["project_id"] as? Int == 2)
+    }
+
     // MARK: - Project List
 
     @Test("projectList returns project models")
