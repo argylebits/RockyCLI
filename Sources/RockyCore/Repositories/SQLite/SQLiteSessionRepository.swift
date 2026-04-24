@@ -89,4 +89,30 @@ public struct SQLiteSessionRepository: SessionRepository, Sendable {
                 arguments: [id])!
         }
     }
+
+    public func delete(id: Int) throws {
+        try db.dbQueue.write { db in
+            guard try Session.fetchOne(db,
+                sql: "SELECT * FROM sessions WHERE id = ?",
+                arguments: [id]) != nil else {
+                throw RockyError.sessionNotFound(id)
+            }
+            try db.execute(
+                sql: "DELETE FROM sessions WHERE id = ?",
+                arguments: [id])
+        }
+    }
+
+    @discardableResult
+    public func deleteAll(projectId: Int) throws -> Int {
+        try db.dbQueue.write { db in
+            let count = try Int.fetchOne(db,
+                sql: "SELECT COUNT(*) FROM sessions WHERE project_id = ?",
+                arguments: [projectId]) ?? 0
+            try db.execute(
+                sql: "DELETE FROM sessions WHERE project_id = ?",
+                arguments: [projectId])
+            return count
+        }
+    }
 }

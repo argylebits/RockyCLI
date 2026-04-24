@@ -47,4 +47,11 @@ public final class MockProjectRepository: ProjectRepository, @unchecked Sendable
         projects[index] = updated
         return updated
     }
+
+    public func delete(id: Int) throws {
+        guard let index = projects.firstIndex(where: { $0.id == id }) else {
+            throw RockyError.projectNotFound(String(id))
+        }
+        projects.remove(at: index)
+    }
 }

@@ -54,4 +54,18 @@ public final class MockSessionRepository: SessionRepository, @unchecked Sendable
         sessions[index] = updated
         return updated
     }
+
+    public func delete(id: Int) throws {
+        guard let index = sessions.firstIndex(where: { $0.id == id }) else {
+            throw RockyError.sessionNotFound(id)
+        }
+        sessions.remove(at: index)
+    }
+
+    @discardableResult
+    public func deleteAll(projectId: Int) throws -> Int {
+        let count = sessions.filter { $0.projectId == projectId }.count
+        sessions.removeAll { $0.projectId == projectId }
+        return count
+    }
 }

@@ -153,6 +153,34 @@ struct OutputFormatterTests {
         #expect(text == "Renamed acme-corp → Acme Inc")
     }
 
+    // MARK: - Session deleted
+
+    @Test("sessionDeleted formats confirmation message")
+    func sessionDeleted() {
+        let session = Session(id: 41, projectId: 1, startTime: Date().addingTimeInterval(-9000), endTime: Date())
+        let result = CommandResult.sessionDeleted(session: session, projectName: "acme-corp")
+        let text = OutputFormatter.formatText(result)
+        #expect(text == "Deleted session 41 (acme-corp, 2h 30m)")
+    }
+
+    // MARK: - Project deleted
+
+    @Test("projectDeleted formats confirmation message")
+    func projectDeleted() {
+        let project = Project(id: 1, parentId: nil, name: "acme-corp", slug: "acme-corp", createdAt: Date())
+        let result = CommandResult.projectDeleted(project: project, sessionCount: 47)
+        let text = OutputFormatter.formatText(result)
+        #expect(text == "Deleted project acme-corp (47 sessions removed)")
+    }
+
+    @Test("projectDeleted formats zero sessions")
+    func projectDeletedNoSessions() {
+        let project = Project(id: 1, parentId: nil, name: "acme-corp", slug: "acme-corp", createdAt: Date())
+        let result = CommandResult.projectDeleted(project: project, sessionCount: 0)
+        let text = OutputFormatter.formatText(result)
+        #expect(text == "Deleted project acme-corp (0 sessions removed)")
+    }
+
     // MARK: - Dashboard
 
     @Test("dashboard delegates to DashboardRenderer")

@@ -74,4 +74,17 @@ public struct SQLiteProjectRepository: ProjectRepository, Sendable {
             return updated
         }
     }
+
+    public func delete(id: Int) throws {
+        try db.dbQueue.write { db in
+            guard try Project.fetchOne(db,
+                sql: "SELECT * FROM projects WHERE id = ?",
+                arguments: [id]) != nil else {
+                throw RockyError.projectNotFound(String(id))
+            }
+            try db.execute(
+                sql: "DELETE FROM projects WHERE id = ?",
+                arguments: [id])
+        }
+    }
 }

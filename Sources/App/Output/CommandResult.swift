@@ -10,10 +10,12 @@ enum CommandResult {
     case sessionGrouped(report: GroupedReport, period: String, projectFilter: String?, hoursOnly: Bool, sessions: [Session])
     case sessionVerbose(sessions: [VerboseSessionRow], period: String, projectFilter: String?)
     case sessionEdited(session: Session)
+    case sessionDeleted(session: Session, projectName: String)
 
     // Project
     case projectList(projects: [Project])
     case projectRenamed(oldName: String, project: Project)
+    case projectDeleted(project: Project, sessionCount: Int)
 
     // Dashboard
     case dashboard(data: DashboardData)

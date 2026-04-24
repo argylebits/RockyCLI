@@ -42,11 +42,18 @@ enum OutputFormatter {
         case .sessionEdited(let session):
             return encode(["session": session])
 
+        case .sessionDeleted(let session, _):
+            return encode(["session": session])
+
         case .projectList(let projects):
             return encode(["projects": projects])
 
         case .projectRenamed(_, let project):
             return encode(["project": project])
+
+        case .projectDeleted(let project, let sessionCount):
+            struct DeletedOutput: Encodable { let project: Project; let sessions_deleted: Int }
+            return encode(DeletedOutput(project: project, sessions_deleted: sessionCount))
 
         case .dashboard:
             return encode(["message": formatText(result)])
@@ -111,6 +118,9 @@ enum OutputFormatter {
             let durStr = DurationFormat.formatted(session.duration())
             return "Updated: \(session.startTime.formatted(DateTimeFormat.dateWithDay))  \(startStr) — \(stopStr)  (\(durStr))"
 
+        case .sessionDeleted(let session, let projectName):
+            return "Deleted session \(session.id) (\(projectName), \(DurationFormat.formatted(session.duration())))"
+
         case .projectList(let projects):
             if projects.isEmpty {
                 return "No projects found."
@@ -119,6 +129,9 @@ enum OutputFormatter {
 
         case .projectRenamed(let oldName, let project):
             return "Renamed \(oldName) → \(project.name)"
+
+        case .projectDeleted(let project, let sessionCount):
+            return "Deleted project \(project.name) (\(sessionCount) sessions removed)"
 
         case .dashboard(let data):
             return DashboardRenderer.render(data)

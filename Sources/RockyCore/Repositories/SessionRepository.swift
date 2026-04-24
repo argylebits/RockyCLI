@@ -5,4 +5,6 @@ public protocol SessionRepository: Sendable {
     func get(id: Int) throws -> Session?
     func list(running: Bool?, from: Date?, to: Date?, projectId: Int?) throws -> [(Session, Project)]
     func update(id: Int, startTime: Date, endTime: Date?) throws -> Session
+    func delete(id: Int) throws
+    func deleteAll(projectId: Int) throws -> Int
 }

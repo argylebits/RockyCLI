@@ -23,6 +23,16 @@ public struct ProjectService: Sendable {
         try repository.list()
     }
 
+    @discardableResult
+    public func delete(name: String, sessionService: SessionService) throws -> Int {
+        guard let project = try repository.get(slug: name.slugified) else {
+            throw RockyError.projectNotFound(name)
+        }
+        let count = try sessionService.deleteAll(projectId: project.id)
+        try repository.delete(id: project.id)
+        return count
+    }
+
     public func rename(oldName: String, newName: String) throws -> Project {
         guard let project = try repository.get(slug: oldName.slugified) else {
             throw RockyError.projectNotFound(oldName)

@@ -23,4 +23,13 @@ public struct SessionService: Sendable {
     public func update(id: Int, startTime: Date, endTime: Date?) throws -> Session {
         try repository.update(id: id, startTime: startTime, endTime: endTime)
     }
+
+    public func delete(id: Int) throws {
+        try repository.delete(id: id)
+    }
+
+    @discardableResult
+    public func deleteAll(projectId: Int) throws -> Int {
+        try repository.deleteAll(projectId: projectId)
+    }
 }
